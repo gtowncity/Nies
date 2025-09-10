@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nies-Counter</title>
+  <style>
+    :root{
+      --sky1:#8ecbff; --sky2:#bfe6ff;
+      --hill1:#9bd37a; --hill2:#6fc061;
+      --text:#22170a; --muted:#6b5b3a;
+      --paper:#fff6df;
+      --wood1:#4f311b; --wood2:#6c4223; --wood3:#996637;
+      --gold1:#ffe38a; --gold2:#ffc25c; --gold3:#db8c28; --gold-border:#6d3f09;
+      --red1:#ffd2c9; --red2:#ff9e8e; --red3:#e1705f; --red-border:#7d2e24;
+      --blue1:#cfe9ff; --blue2:#9fd0ff; --blue3:#6fb1f2; --blue-border:#2a557c;
+      --radius:0; --px:3px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--text); font-family: "Segoe UI", Frutiger, Arial, system-ui, sans-serif;
+      display:grid; place-items:center; image-rendering: pixelated;
+      background:
+        radial-gradient(150px 60px at 22% 15%, rgba(255,255,255,.75), rgba(255,255,255,0) 70%),
+        radial-gradient(200px 80px at 68% 12%, rgba(255,255,255,.75), rgba(255,255,255,0) 70%),
+        radial-gradient(140px 50px at 82% 22%, rgba(255,255,255,.75), rgba(255,255,255,0) 70%),
+        radial-gradient(800px 180px at 20% 100%, var(--hill1) 0 60%, rgba(0,0,0,0) 61%),
+        radial-gradient(900px 200px at 80% 100%, var(--hill2) 0 60%, rgba(0,0,0,0) 61%),
+        linear-gradient(to bottom, var(--sky1), var(--sky2) 62%);
+      background-attachment: fixed;
+    }
+    .wrap{ width:min(1080px,92vw); padding:36px 20px 56px; }
+    header{ text-align:center; margin-bottom:16px; }
+    header h1{ margin:6px 0 4px; font-weight:900; letter-spacing:1px; font-size:clamp(28px,4vw,44px); text-transform:uppercase; color:#2a1b06;
+      text-shadow: var(--px) var(--px) 0 #d8ae5f, calc(var(--px)*-1) var(--px) 0 #d8ae5f, var(--px) calc(var(--px)*-1) 0 #d8ae5f, calc(var(--px)*-1) calc(var(--px)*-1) 0 #d8ae5f, 0 calc(var(--px)*2) 0 rgba(0,0,0,.18); }
+    header .subtitle{ color:#4e3e25; font-size:clamp(14px,1.6vw,18px); }
+    .grid{ display:grid; gap:14px; grid-template-columns:1fr; }
+    .board{ padding:10px; border:2px solid var(--wood1); background:
+      linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0)),
+      repeating-linear-gradient(90deg, var(--wood3) 0 12px, var(--wood2) 12px 24px, var(--wood3) 24px 36px);
+      box-shadow: 0 var(--px) 0 rgba(0,0,0,.35), 0 calc(var(--px)*2) 0 rgba(0,0,0,.35), 0 calc(var(--px)*6) calc(var(--px)*3) rgba(0,0,0,.22); }
+    .card{ position:relative; overflow:hidden; border-radius:var(--radius); background: linear-gradient(180deg,#fff9e8,var(--paper)); border:2px solid var(--wood2); box-shadow: inset 0 var(--px) 0 #fff; padding:16px; }
+    .card::after{ content:""; position:absolute; inset:0; pointer-events:none; background-image: linear-gradient(90deg, rgba(0,0,0,.04) 1px, transparent 1px), linear-gradient(0deg, rgba(0,0,0,.04) 1px, transparent 1px); background-size:2px 2px, 2px 2px; mix-blend-mode:multiply; }
+    .card h2{ margin:0 0 10px; font-size:18px; font-weight:900; text-align:center; text-transform:uppercase; letter-spacing:.5px; }
+    .today-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .today-label{ font-size:16px; font-weight:900; text-transform:uppercase; letter-spacing:.5px; }
+    .today-value{ text-align:center; font-size:clamp(48px,9vw,92px); font-weight:900; line-height:1; margin:8px 0 0; color:#1e160b;
+      text-shadow: var(--px) var(--px) 0 #d8ae5f, calc(var(--px)*-1) var(--px) 0 #d8ae5f, var(--px) calc(var(--px)*-1) 0 #d8ae5f, calc(var(--px)*-1) calc(var(--px)*-1) 0 #d8ae5f; }
+    .btns{ display:flex; gap:8px; align-items:center; }
+    .btn{ --pad:10px 16px; appearance:none; border-radius:var(--radius); padding:var(--pad); cursor:pointer; user-select:none; text-transform:uppercase;
+      border:2px solid var(--gold-border); font-weight:900; color:#3b2506;
+      background: linear-gradient(180deg, var(--gold1), var(--gold2) 60%, var(--gold3)); box-shadow: 0 var(--px) 0 rgba(0,0,0,.35), 0 calc(var(--px)*2) 0 rgba(0,0,0,.35), inset 0 1px 0 #fff7d0; transition: transform .05s ease, box-shadow .05s ease; }
+    .btn:active{ transform: translateY(1px); box-shadow: 0 calc(var(--px)*.5) 0 rgba(0,0,0,.35), 0 var(--px) 0 rgba(0,0,0,.35), inset 0 1px 0 #fff7d0; }
+    .btn.secondary{ background: linear-gradient(180deg, var(--blue1), var(--blue2) 60%, var(--blue3)); border-color: var(--blue-border); color:#13314b; }
+    .btn.danger{ background: linear-gradient(180deg, var(--red1), var(--red2) 60%, var(--red3)); border-color: var(--red-border); color:#4b1411; }
+    .btn.ghost{ background:#f7ead0; border-color: var(--wood2); color:#2a1f0f; box-shadow: inset 0 1px 0 #fff; }
+    .btn.small{ --pad:8px 10px; font-size:14px; }
+    .stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; text-align:center; margin-top:6px; }
+    .stat{ background:#fff4db; border:2px solid var(--wood2); border-radius:var(--radius); padding:10px; box-shadow: inset 0 1px 0 #fff; }
+    .stat .label{ color:#695333; font-size:12px; font-weight:800; text-transform:uppercase; }
+    .stat .value{ font-size:18px; font-weight:900; margin-top:4px; }
+    .share{ display:flex; gap:8px; align-items:center; margin-top:10px; }
+    .share input{ flex:1; padding:11px; border-radius:var(--radius); border:2px solid var(--wood2); background:#fff9e9; color:#2a1f0f; outline:none; box-shadow: inset 0 1px 0 #fff; font-weight:700; }
+    table{ width:100%; border-collapse:collapse; }
+    thead th{ text-align:left; color:#6b5b3a; font-weight:900; padding:10px 8px; border-bottom:2px solid var(--wood2); text-transform:uppercase; }
+    tbody td{ padding:9px 8px; border-bottom:1px solid #e5d7b5; vertical-align:middle; }
+    tbody tr:hover{ background:#fff4db; }
+    td.actions{ text-align:right; }
+    #confirm-overlay[hidden]{ display:none; }
+    #confirm-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.35); display:grid; place-items:center; z-index:50; image-rendering:pixelated; }
+    .confirm{ width:min(420px,92vw); background:linear-gradient(180deg,#fff9e8,#fff3d2); border:2px solid var(--wood2); border-radius:var(--radius); box-shadow: 0 var(--px) 0 rgba(0,0,0,.35), 0 calc(var(--px)*2) 0 rgba(0,0,0,.35), 0 calc(var(--px)*6) calc(var(--px)*3) rgba(0,0,0,.22); padding:16px; }
+    .confirm .msg{ margin-bottom:12px; font-weight:900; text-align:center; text-transform:uppercase; }
+    .confirm .row{ display:flex; gap:8px; justify-content:flex-end; }
+    @media (max-width:720px){ .stats{ grid-template-columns:repeat(2,1fr); } .today-head{ flex-direction:column; align-items:center; gap:8px; } .btns{ width:100%; justify-content:center; flex-wrap:wrap; } }
+  </style>
+</head>
+<body>
+  <main class="wrap" id="app" aria-live="polite">
+    <header>
+      <h1>Nies-Counter</h1>
+      <div class="subtitle">Zähle jeden Nieser. Sortiert nach Tagen. Teilen erlaubt Bearbeitung.</div>
+    </header>
+    <section class="grid">
+      <section class="board">
+        <section class="card" id="panel-today" aria-labelledby="today-title">
+          <div class="today-head">
+            <div class="today-label" id="today-title">Heute (<span id="today-date">--.--.----</span>)</div>
+            <div class="btns">
+              <button type="button" class="btn" data-action="inc">+1</button>
+              <button type="button" class="btn secondary" data-action="dec">↶ Rückgängig</button>
+              <button type="button" class="btn danger" data-action="reset">Heute zurücksetzen</button>
+            </div>
+          </div>
+          <div class="today-value" id="today-value">0</div>
+        </section>
+      </section>
+      <section class="board">
+        <section class="card" id="panel-stats">
+          <h2>Statistiken</h2>
+          <div class="stats" id="stats">
+            <div class="stat"><div class="label">Gesamt</div><div class="value" id="stat-total">0</div></div>
+            <div class="stat"><div class="label">Bester Tag</div><div class="value" id="stat-best">0 — —</div></div>
+            <div class="stat"><div class="label">Ø pro Tag</div><div class="value" id="stat-avg">0,00</div></div>
+            <div class="stat"><div class="label">Streak</div><div class="value" id="stat-streak">0</div></div>
+          </div>
+          <div class="share">
+            <button type="button" class="btn" data-action="share">Teilen (bearbeitbar)</button>
+            <input id="share-link" type="text" readonly placeholder="Link wird hier angezeigt …" aria-label="Teilbarer Link" />
+          </div>
+        </section>
+      </section>
+      <section class="board">
+        <section class="card" id="panel-days">
+          <h2>Tage</h2>
+          <table aria-describedby="Tabelle der Nieser pro Tag">
+            <thead>
+              <tr><th style="width:46%">Datum</th><th style="width:24%">Nieser</th><th class="actions" style="width:30%">Aktion</th></tr>
+            </thead>
+            <tbody id="days-body"></tbody>
+          </table>
+        </section>
+      </section>
+    </section>
+  </main>
+  <div id="confirm-overlay" hidden>
+    <div class="confirm" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+      <div id="confirm-title" class="msg">Bitte bestätigen</div>
+      <div class="row">
+        <button type="button" class="btn ghost small" data-confirm="no">Abbrechen</button>
+        <button type="button" class="btn danger small" data-confirm="yes">Bestätigen</button>
+      </div>
+    </div>
+  </div>
+  <script>
+  "use strict"; (function(){
+    // ===== Live-Sync über SSE (gleiches Origin: /live/<roomId>) =====
+    const STORAGE_KEY='sneezeCounterDataV2';
+    const BOUND_SYM=Symbol('__bound');
+    const instanceId=Math.random().toString(36).slice(2);
+    const bc = ('BroadcastChannel' in window) ? new BroadcastChannel('nies-counter-v1') : null;
+
+    let data={}; let _currentDay=null; let _midnightTimer=null; let sharedMode=false;
+    let liveMode=false; let roomId=null; let es=null; let lastHash='';
+
+    const pad=(n)=>String(n).padStart(2,'0');
+    const todayKey=(d=new Date())=>[d.getFullYear(),pad(d.getMonth()+1),pad(d.getDate())].join('-');
+    const displayDateFromKey=(k)=>{const [y,m,d]=k.split('-'); return `${d}.${m}.${y}`;};
+    const prevDayKey=(k)=>{const [y,m,d]=k.split('-').map(Number); return todayKey(new Date(y,m-1,d-1));};
+
+    const safeGetStorage=()=>{try{return localStorage;}catch(_){return null;}};
+    const loadData=()=>{const ls=safeGetStorage(); if(!ls) return {}; try{const raw=ls.getItem(STORAGE_KEY); if(!raw) return {}; const p=JSON.parse(raw); return (p&&typeof p==='object')?p:{};}catch(e){console.warn('localStorage Parse-Fehler',e); return {};}};
+    const saveData=()=>{const ls=safeGetStorage(); if(!ls) return; try{ls.setItem(STORAGE_KEY,JSON.stringify(data));}catch(e){console.warn('localStorage Schreib-Fehler',e);} };
+
+    const toSnapshot=(obj)=>{const json=JSON.stringify(obj); const b64=btoa(unescape(encodeURIComponent(json))); return b64.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');};
+    const fromSnapshot=(payload)=>{const padLen=(4-(payload.length%4))%4; const b64=payload.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat(padLen); const json=decodeURIComponent(escape(atob(b64))); const p=JSON.parse(json); if(!p||typeof p!=='object') throw new Error('Ungültiger Datensatz'); return p;};
+
+    const relSnapshotUrl=()=>location.pathname+location.search+'#d='+toSnapshot(data);
+    const absFromRel=(rel)=>location.origin+rel;
+    const relLiveUrl=()=>location.pathname+location.search+'#r='+roomId;
+
+    function updateShareLink(){
+      const input=document.getElementById('share-link');
+      let rel;
+      if(liveMode && roomId){ rel = relLiveUrl(); }
+      else if(sharedMode){ rel = relSnapshotUrl(); }
+      else { rel = relSnapshotUrl(); }
+      input.value = absFromRel(rel);
+      if(sharedMode){ history.replaceState({},'',rel); lastHash=location.hash; }
+    }
+
+    function base64url(bytes){return btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
+    function newRoomId(){ const b=new Uint8Array(16); (window.crypto||window.msCrypto).getRandomValues(b); return base64url(b); }
+    function liveEndpoint(){ return location.origin.replace(/\/$/,'') + `/live/${roomId}`; }
+
+    function startLive(){
+      if(!roomId) return;
+      es?.close();
+      es = new EventSource(liveEndpoint());
+      es.onmessage = (e)=>{
+        try{ const incoming = JSON.parse(e.data);
+          if(JSON.stringify(incoming) !== JSON.stringify(data)){
+            data = incoming; saveData(); render();
+          }
+        }catch(_){}
+      };
+      es.onerror = ()=>{};
+      liveMode = true; sharedMode = false;
+      updateShareLink();
+    }
+    function pushLive(){
+      if(!(liveMode && roomId)) return;
+      fetch(liveEndpoint(), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) }).catch(()=>{});
+    }
+
+    function inc(n=1){ const k=_currentDay||todayKey(); const prev=Number(data[k]||0); data[k]=prev+Number(n||0); saveData(); if(sharedMode||liveMode) updateShareLink(); render(); syncNotify(); pushLive(); return data[k]; }
+    function dec(n=1){ const k=_currentDay||todayKey(); const prev=Number(data[k]||0); data[k]=Math.max(0,prev-Number(n||0)); saveData(); if(sharedMode||liveMode) updateShareLink(); render(); syncNotify(); pushLive(); return data[k]; }
+    function resetTodayForce(){ const k=_currentDay||todayKey(); data[k]=0; saveData(); if(sharedMode||liveMode) updateShareLink(); render(); syncNotify(); pushLive(); return true; }
+    function deleteDayForce(key){ if(!(key in data)) return false; delete data[key]; saveData(); if(sharedMode||liveMode) updateShareLink(); render(); syncNotify(); pushLive(); return true; }
+
+    function syncNotify(){ if(bc) bc.postMessage({t:'data', from:instanceId, data}); }
+    if(bc){ bc.onmessage = (ev)=>{ const msg=ev.data||{}; if(msg.from===instanceId) return; if(msg.t==='data'){ if(JSON.stringify(msg.data)!==JSON.stringify(data)){ data=msg.data; saveData(); render(); } } }; }
+    window.addEventListener('storage', (e)=>{ if(e.key===STORAGE_KEY && e.newValue){ try{ const nd=JSON.parse(e.newValue); if(JSON.stringify(nd)!==JSON.stringify(data)){ data=nd; render(); } }catch(_){ } } });
+
+    function uiConfirm(message){ return new Promise((res)=>{ const ov=document.getElementById('confirm-overlay'); const m=document.getElementById('confirm-title'); m.textContent=message; ov.hidden=false; function onClick(e){ const b=e.target.closest('[data-confirm]'); if(!b) return; cleanup(); res(b.getAttribute('data-confirm')==='yes'); } function onKey(e){ if(e.key==='Escape'){ cleanup(); res(false);} } function onBackdrop(e){ if(e.target===ov){ cleanup(); res(false);} } function cleanup(){ ov.hidden=true; ov.removeEventListener('click',onClick); document.removeEventListener('keydown',onKey); ov.removeEventListener('mousedown',onBackdrop);} ov.addEventListener('click',onClick); ov.addEventListener('mousedown',onBackdrop); document.addEventListener('keydown',onKey); }); }
+
+    function resetToday(confirmFn=window.confirm){ try{ if(!(confirmFn&&confirmFn('Heute wirklich auf 0 setzen?'))) return false; }catch(_){ return false; } return resetTodayForce(); }
+    function deleteDay(key,confirmFn=window.confirm){ try{ if(!(confirmFn&&confirmFn(`Tag ${displayDateFromKey(key)} wirklich löschen?`))) return false; }catch(_){ return false; } return deleteDayForce(key); }
+
+    function computeStats(obj){ const keys=Object.keys(obj); let total=0,countDays=0,best=0,bestKey=null; for(const k of keys){ const v=Number(obj[k]||0); if(v>0){ total+=v; countDays++; if(v>best || (v===best && (!bestKey||k>bestKey))){ best=v; bestKey=k; } } } const avg=countDays?(total/countDays):0; let streak=0; let cur=_currentDay||todayKey(); while(Number(obj[cur]||0)>0){ streak++; cur=prevDayKey(cur);} return { total, best, bestDay: bestKey?displayDateFromKey(bestKey):'—', avg, streak }; }
+    function render(){ _currentDay=todayKey(); document.getElementById('today-date').textContent=displayDateFromKey(_currentDay); document.getElementById('today-value').textContent=String(Number(data[_currentDay]||0)); const s=computeStats(data); document.getElementById('stat-total').textContent=String(s.total); document.getElementById('stat-best').textContent=s.best>0?`${s.best} — ${s.bestDay}`:'0 — —'; document.getElementById('stat-avg').textContent=s.avg.toFixed(2).replace('.',','); document.getElementById('stat-streak').textContent=String(s.streak); const tbody=document.getElementById('days-body'); tbody.innerHTML=''; const keys=Object.keys(data).sort((a,b)=>a<b?1:a>b?-1:0); for(const k of keys){ const tr=document.createElement('tr'); const td1=document.createElement('td'); td1.textContent=displayDateFromKey(k); const td2=document.createElement('td'); td2.textContent=String(Number(data[k]||0)); const td3=document.createElement('td'); td3.className='actions'; const delBtn=document.createElement('button'); delBtn.type='button'; delBtn.className='btn ghost small'; delBtn.setAttribute('data-action','del'); delBtn.setAttribute('data-key',k); delBtn.textContent='Löschen'; td3.appendChild(delBtn); tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); tbody.appendChild(tr);} if(sharedMode||liveMode) updateShareLink(); }
+
+    async function doShare(ev){
+      if(ev && ev.shiftKey){
+        if(!roomId){ roomId = newRoomId(); }
+        liveMode = true; sharedMode = false;
+        history.replaceState({},'',relLiveUrl());
+        updateShareLink();
+        startLive();
+        pushLive();
+        const abs = absFromRel(relLiveUrl());
+        try{ if(navigator.share){ await navigator.share({title:'Nies-Counter (Live)', text:'Live-Link', url:abs}); return; } }catch(_){ }
+        try{ await navigator.clipboard.writeText(abs); } catch(_){ prompt('Link zum Kopieren:', abs); }
+        const input=document.getElementById('share-link'); input.focus(); input.select();
+        return;
+      }
+      sharedMode = true; liveMode = false; updateShareLink();
+      const abs = absFromRel(relSnapshotUrl());
+      try{ if(navigator.share){ await navigator.share({ title:'Nies-Counter', text:'Bearbeitbarer Snapshot-Link', url:abs }); return; } }catch(_){ }
+      try{ await navigator.clipboard.writeText(abs); } catch(_){ prompt('Link zum Kopieren:', abs); }
+      const input=document.getElementById('share-link'); input.focus(); input.select();
+    }
+
+    function parseHashIfPresent(){ const h=location.hash||''; lastHash=h; if(h.startsWith('#d=')){ try{ data=fromSnapshot(h.slice(3)); sharedMode=true; liveMode=false; roomId=null; saveData(); return true; }catch(e){ console.warn('Ungültiger Hash, ignoriere.',e); return false; } }
+      if(h.startsWith('#r=')){ roomId=h.slice(3); startLive(); return true; }
+      return false;
+    }
+    window.addEventListener('hashchange', ()=>{ if(location.hash!==lastHash){ if(parseHashIfPresent()) render(); } });
+
+    function scheduleMidnightRollover(){ if(_midnightTimer){clearTimeout(_midnightTimer); _midnightTimer=null;} const now=new Date(); const next=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1,0,0,0,0); const ms=next-now+50; _midnightTimer=setTimeout(()=>{ _currentDay=todayKey(); render(); scheduleMidnightRollover(); }, ms); }
+    function checkDayChangeOnFocus(){ const tk=todayKey(); if(tk!==_currentDay){ _currentDay=tk; render(); scheduleMidnightRollover(); } }
+
+    function bindOnce(el,ev,fn){ if(!el[BOUND_SYM]) el[BOUND_SYM]=new Set(); const key=ev+':' + (fn.name||'anon'); if(el[BOUND_SYM].has(key)) return; el.addEventListener(ev,fn,{passive:false}); el[BOUND_SYM].add(key); }
+    function handleButtons(e){ const t=e.target.closest('button[data-action]'); if(!t) return; const a=t.getAttribute('data-action'); if(a==='inc') inc(1); else if(a==='dec') dec(1); else if(a==='share') doShare(e); else if(a==='reset'){ uiConfirm('Heute wirklich auf 0 setzen?').then(ok=>{ if(ok) resetTodayForce(); }); } else if(a==='del'){ const k=t.getAttribute('data-key'); if(!k) return; uiConfirm(`Tag ${displayDateFromKey(k)} wirklich löschen?`).then(ok=>{ if(ok) deleteDayForce(k); }); } }
+
+    function init(){ _currentDay=todayKey(); data=loadData(); parseHashIfPresent(); const app=document.getElementById('app'); bindOnce(app,'click',handleButtons); const shareInput=document.getElementById('share-link'); bindOnce(shareInput,'focus',()=>shareInput.select()); bindOnce(document,'visibilitychange',()=>{ if(!document.hidden) checkDayChangeOnFocus(); }); bindOnce(window,'focus',checkDayChangeOnFocus); scheduleMidnightRollover(); render(); }
+
+    window.__NIES__={ inc, dec, resetToday, deleteDay, computeStats, todayKey };
+    document.addEventListener('DOMContentLoaded',init,{once:true});
+  })();
+  </script>
+</body>
+</html>
