@@ -1,5 +1,5 @@
 // server.js — Node 18+
-// Static hosting + SSE relay at /live/<roomId>
+// Static hosting + SSE relay (/live/<roomId>) + JSON fallback (/live/<roomId>/last)
 import { createServer } from "http";
 import { parse } from "url";
 import { fileURLToPath } from "url";
@@ -30,8 +30,8 @@ function safeJoin(baseDir, reqPath){
 const server = createServer((req, res) => {
   const { pathname } = parse(req.url, true);
 
-  // SSE endpoints
-  const m = pathname.match(/^\/live\/([A-Za-z0-9_-]{6,64})$/);
+  // --- SSE: /live/<roomId>
+  let m = pathname.match(/^\/live\/([A-Za-z0-9_-]{6,64})$/);
   if (m) {
     const room = m[1];
     if (req.method === "GET") {
@@ -48,6 +48,7 @@ const server = createServer((req, res) => {
       meta.clients.add(res);
       res.write(":ok\n\n");
       if (meta.last) res.write(`data:${JSON.stringify(meta.last)}\n\n`);
+
       const ping = setInterval(()=>{ try{ res.write(":ping\n\n"); }catch{} }, 25000);
       req.on("close", ()=>{ clearInterval(ping); meta.clients.delete(res); });
       return;
@@ -74,7 +75,21 @@ const server = createServer((req, res) => {
     return;
   }
 
-  // Static files
+  // --- Fallback JSON: /live/<roomId>/last  (GET)
+  m = pathname.match(/^\/live\/([A-Za-z0-9_-]{6,64})\/last$/);
+  if (m && req.method === "GET") {
+    const room = m[1];
+    const meta = rooms.get(room) || { last:null };
+    res.writeHead(200, {
+      "Content-Type":"application/json; charset=utf-8",
+      "Cache-Control":"no-store",
+      "Access-Control-Allow-Origin":"*"
+    });
+    res.end(JSON.stringify(meta.last || {}));
+    return;
+  }
+
+  // --- Static
   let filePath = pathname === "/" ? "/index.html" : pathname;
   filePath = safeJoin(PUBLIC_DIR, filePath);
   fs.stat(filePath, (err, st) => {
