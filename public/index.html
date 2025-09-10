@@ -84,11 +84,6 @@
     .confirm .row{ display:flex; gap:8px; justify-content:flex-end; }
 
     [hidden]{ display:none !important; }
-    @media (max-width:720px){
-      .stats{ grid-template-columns:repeat(2,1fr); }
-      .today-head{ flex-direction:column; align-items:center; gap:8px; }
-      .btns{ width:100%; justify-content:center; flex-wrap:wrap; }
-    }
   </style>
 </head>
 <body>
@@ -102,9 +97,10 @@
       </nav>
     </header>
 
-    <section id="view-nies" class="grid" role="region" aria-label="Nies-o-Mat">
+    <!-- NIES -->
+    <section id="view-nies" class="grid">
       <section class="board">
-        <section class="card" id="panel-today">
+        <section class="card">
           <div class="today-head">
             <div class="today-label">Heute (<span id="today-date">--.--.----</span>)</div>
             <div class="btns">
@@ -116,8 +112,9 @@
           <div class="today-value" id="today-value">0</div>
         </section>
       </section>
+
       <section class="board">
-        <section class="card" id="panel-stats">
+        <section class="card">
           <h2>Statistiken</h2>
           <div class="stats">
             <div class="stat"><div class="label">Gesamt</div><div class="value" id="stat-total">0</div></div>
@@ -131,8 +128,9 @@
           </div>
         </section>
       </section>
+
       <section class="board">
-        <section class="card" id="panel-days">
+        <section class="card">
           <h2>Tage</h2>
           <table>
             <thead>
@@ -144,7 +142,8 @@
       </section>
     </section>
 
-    <section id="view-wetter" class="grid" role="region" aria-label="Wetter" hidden>
+    <!-- WETTER -->
+    <section id="view-wetter" class="grid" hidden>
       <section class="board">
         <section class="card">
           <h2>Wetter</h2>
@@ -183,209 +182,198 @@
 
   <script>
   (function(){
-    // ---------- Helpers ----------
     const q = s => document.querySelector(s);
     const pad = n => String(n).padStart(2,'0');
     const todayKey = (d=new Date()) => [d.getFullYear(), pad(d.getMonth()+1), pad(d.getDate())].join('-');
     const displayDateFromKey = k => { const [y,m,d]=k.split('-'); return `${d}.${m}.${y}`; };
     const prevDayKey = k => { const [y,m,d]=k.split('-').map(Number); return todayKey(new Date(y,m-1,d-1)); };
 
-    // Base64URL <-> JSON ohne escape/unescape
-    function b64urlEncodeJSON(obj){
+    // Base64URL <-> JSON (ohne deprecated escape/unescape)
+    function toSnap(obj){
       const bytes = new TextEncoder().encode(JSON.stringify(obj));
-      let bin = ""; for (let i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]);
+      let bin=""; for(let i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]);
       return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
     }
-    function b64urlDecodeJSON(s){
+    function fromSnap(s){
       const padLen = (4 - (s.length % 4)) % 4;
       const b64 = s.replace(/-/g,'+').replace(/_/g,'/') + '='.repeat(padLen);
       const bin = atob(b64);
       const bytes = new Uint8Array(bin.length);
-      for (let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+      for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
       return JSON.parse(new TextDecoder().decode(bytes));
     }
 
-    // ---------- State ----------
-    const STORAGE_KEY = 'sneezeCounterDataV2';
-    let data = {};
-    let _currentDay = null;
-    let _midnightTimer = null;
-    let sharedMode = false;
-    let liveMode = false;
-    let roomId = null;
-    let es = null;
-    let lastHash = '';
+    const STORAGE_KEY='sneezeCounterDataV2';
+    let data={}, _currentDay=null, _midnightTimer=null;
+    let sharedMode=false, liveMode=false, roomId=null, es=null, lastHash='';
+    let pollTimer=null;
 
-    // ---------- Storage ----------
-    function lsGet(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); }catch{ return {}; } }
-    function lsSet(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }catch{} }
+    const lsGet=()=>{ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); }catch{ return {}; } };
+    const lsSet=()=>{ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }catch{} };
 
-    // ---------- Share ----------
-    const relSnap = ()=> location.pathname + location.search + '#d=' + b64urlEncodeJSON(data);
-    const relLive = ()=> location.pathname + location.search + '#r=' + roomId;
-    const abs = r => location.origin + r;
+    const relSnap=()=>location.pathname+location.search+'#d='+toSnap(data);
+    const relLive=()=>location.pathname+location.search+'#r='+roomId;
+    const abs=r=>location.origin+r;
+
     function updateShareLink(){
-      const input = q('#share-link'); if(!input) return;
-      input.value = abs(liveMode && roomId ? relLive() : relSnap());
+      const i=q('#share-link'); if(!i) return;
+      i.value = abs(liveMode && roomId ? relLive() : relSnap());
       if(sharedMode) history.replaceState({},'',relSnap());
     }
 
-    // ---------- Live (SSE) ----------
     function newRoomId(){
-      const b = new Uint8Array(16); crypto.getRandomValues(b);
-      let bin=''; for(let i=0;i<b.length;i++) bin+=String.fromCharCode(b[i]);
+      const b=new Uint8Array(16); crypto.getRandomValues(b);
+      let bin=""; for(let i=0;i<b.length;i++) bin += String.fromCharCode(b[i]);
       return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
     }
-    function liveEndpoint(){ return location.origin.replace(/\/$/,'') + '/live/' + roomId; }
+    function liveBase(){ return location.origin.replace(/\/$/,'') + '/live/' + roomId; }
+    function startPoll(){
+      stopPoll();
+      pollTimer=setInterval(async ()=>{
+        try{
+          const r=await fetch(liveBase()+'/last',{cache:'no-store'});
+          if(!r.ok) return;
+          const incoming=await r.json();
+          if(incoming && Object.keys(incoming).length &&
+             JSON.stringify(incoming)!==JSON.stringify(data)){
+            data=incoming; lsSet(); render();
+          }
+        }catch{}
+      }, 2000);
+    }
+    function stopPoll(){ if(pollTimer){ clearInterval(pollTimer); pollTimer=null; } }
+
     function startLive(){
       if(!roomId) return;
       if(es) es.close();
-      es = new EventSource(liveEndpoint());
-      es.onmessage = (e)=>{ try{
-        const incoming = JSON.parse(e.data);
-        if(JSON.stringify(incoming)!==JSON.stringify(data)){ data=incoming; lsSet(); render(); }
+      es = new EventSource(liveBase());
+      es.onopen = ()=>{ stopPoll(); }; // SSE aktiv -> Poll aus
+      es.onmessage = e => { try{
+        const incoming=JSON.parse(e.data);
+        if(JSON.stringify(incoming)!==JSON.stringify(data)){
+          data=incoming; lsSet(); render();
+        }
       }catch{} };
-      es.onerror = ()=>{};
-      liveMode = true; sharedMode = false;
+      es.onerror = ()=>{ startPoll(); }; // Fallback
+      liveMode = true; sharedMode=false;
       updateShareLink();
     }
     function pushLive(){
       if(!(liveMode && roomId)) return;
-      fetch(liveEndpoint(), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) }).catch(()=>{});
+      fetch(liveBase(), {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)}).catch(()=>{});
     }
 
-    // ---------- Mutations ----------
     function inc(n=1){ const k=_currentDay||todayKey(); data[k]=Number(data[k]||0)+Number(n||0); lsSet(); render(); updateShareLink(); pushLive(); }
     function dec(n=1){ const k=_currentDay||todayKey(); data[k]=Math.max(0, Number(data[k]||0)-Number(n||0)); lsSet(); render(); updateShareLink(); pushLive(); }
     function resetTodayForce(){ const k=_currentDay||todayKey(); data[k]=0; lsSet(); render(); updateShareLink(); pushLive(); }
     function deleteDayForce(key){ if(!(key in data)) return; delete data[key]; lsSet(); render(); updateShareLink(); pushLive(); }
 
-    // ---------- Confirm ----------
     function uiConfirm(message){
-      return new Promise((res)=>{
-        const ov = q('#confirm-overlay'), m=q('#confirm-title');
-        m.textContent = message; ov.hidden = false;
-        function close(ok){ ov.hidden = true; ov.removeEventListener('click',onClick); document.removeEventListener('keydown',onKey); res(ok); }
+      return new Promise(res=>{
+        const ov=q('#confirm-overlay'), m=q('#confirm-title');
+        m.textContent=message; ov.hidden=false;
+        function close(ok){ ov.hidden=true; ov.removeEventListener('click',onClick); document.removeEventListener('keydown',onKey); res(ok); }
         function onClick(e){ const b=e.target.closest('[data-confirm]'); if(!b) return; close(b.dataset.confirm==='yes'); }
         function onKey(e){ if(e.key==='Escape') close(false); }
         ov.addEventListener('click', onClick); document.addEventListener('keydown', onKey);
       });
     }
 
-    // ---------- Stats & Render ----------
     function computeStats(obj){
-      const keys = Object.keys(obj);
-      let total=0, days=0, best=0, bestKey=null;
-      for(const k of keys){ const v=Number(obj[k]||0); if(v>0){ total+=v; days++; if(v>best || (v===best && (!bestKey||k>bestKey))){ best=v; bestKey=k; } } }
-      let streak=0, cur=todayKey(); while(Number(obj[cur]||0)>0){ streak++; cur=prevDayKey(cur); }
+      const keys=Object.keys(obj);
+      let total=0,days=0,best=0,bestKey=null;
+      for(const k of keys){ const v=Number(obj[k]||0);
+        if(v>0){ total+=v; days++; if(v>best || (v===best && (!bestKey||k>bestKey))){ best=v; bestKey=k; } }
+      }
+      let streak=0,cur=todayKey(); while(Number(obj[cur]||0)>0){ streak++; cur=prevDayKey(cur); }
       return { total, avg: days? total/days : 0, best, bestDay: bestKey?displayDateFromKey(bestKey):'—', streak };
     }
     function render(){
-      _currentDay = todayKey();
-      q('#today-date').textContent = displayDateFromKey(_currentDay);
-      q('#today-value').textContent = String(Number(data[_currentDay]||0));
-      const s = computeStats(data);
-      q('#stat-total').textContent  = String(s.total);
-      q('#stat-avg').textContent    = s.avg.toFixed(2).replace('.',',');
-      q('#stat-best').textContent   = s.best>0 ? (s.best+' — '+s.bestDay) : '0 — —';
-      q('#stat-streak').textContent = String(s.streak);
-      const tbody = q('#days-body'); tbody.innerHTML='';
-      const keys = Object.keys(data).sort((a,b)=>a<b?1:-1);
-      for(const k of keys){
+      _currentDay=todayKey();
+      q('#today-date').textContent=displayDateFromKey(_currentDay);
+      q('#today-value').textContent=String(Number(data[_currentDay]||0));
+      const s=computeStats(data);
+      q('#stat-total').textContent=String(s.total);
+      q('#stat-avg').textContent=s.avg.toFixed(2).replace('.',',');
+      q('#stat-best').textContent=s.best>0?`${s.best} — ${s.bestDay}`:'0 — —';
+      q('#stat-streak').textContent=String(s.streak);
+      const tb=q('#days-body'); tb.innerHTML='';
+      Object.keys(data).sort((a,b)=>a<b?1:-1).forEach(k=>{
         const tr=document.createElement('tr');
-        tr.innerHTML = '<td>'+displayDateFromKey(k)+'</td><td>'+Number(data[k]||0)+'</td><td class="actions"><button type="button" class="btn ghost small" data-action="del" data-key="'+k+'">Löschen</button></td>';
-        tbody.appendChild(tr);
-      }
+        tr.innerHTML=`<td>${displayDateFromKey(k)}</td><td>${Number(data[k]||0)}</td>
+                      <td class="actions"><button type="button" class="btn ghost small" data-action="del" data-key="${k}">Löschen</button></td>`;
+        tb.appendChild(tr);
+      });
     }
 
-    // ---------- Weather ----------
+    // Wetter (wie gehabt, gekürzt)
     const WKEY='niesWeatherPrefsV1';
     let weather={name:'Berlin, DE', lat:52.52, lon:13.405, auto:true, tz:Intl.DateTimeFormat().resolvedOptions().timeZone||'auto'};
     let weatherTimer=null, weatherData=null;
     function wsave(){ try{ localStorage.setItem(WKEY, JSON.stringify(weather)); }catch{} }
     function wload(){ try{ const raw=localStorage.getItem(WKEY); if(raw){ const p=JSON.parse(raw); if(p&&typeof p==='object') weather={...weather,...p}; } }catch{} }
-    function fmt(n,u){ return (n==null||Number.isNaN(n))? '—' : (Math.round(n)+u); }
-    function wmoDesc(code){ const m={0:'Klar',1:'Überwiegend klar',2:'Teilweise bewölkt',3:'Bedeckt',45:'Nebel',48:'Reifnebel',51:'Niesel leicht',53:'Niesel',55:'Niesel stark',61:'Regen leicht',63:'Regen',65:'Regen stark',66:'Gefr. Regen leicht',67:'Gefr. Regen',71:'Schnee leicht',73:'Schnee',75:'Schnee stark',77:'Schneekörner',80:'Schauer leicht',81:'Schauer',82:'Schauer stark',85:'Schneeschauer leicht',86:'Schneeschauer stark',95:'Gewitter',96:'Gewitter leichter Hagel',99:'Gewitter starker Hagel'}; return m[code]||'—'; }
-    async function geocode(qs){ const r=await fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(qs)+'&count=1&language=de'); if(!r.ok) throw 0; const j=await r.json(); const hit=j.results&&j.results[0]; if(!hit) throw 0; return {name:hit.name+(hit.country?', '+hit.country:''), lat:hit.latitude, lon:hit.longitude, tz:hit.timezone}; }
-    async function wfetch(){ const tz=weather.tz==='auto'?'auto':encodeURIComponent(weather.tz); const url='https://api.open-meteo.com/v1/forecast?latitude='+weather.lat+'&longitude='+weather.lon+'&current=temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone='+tz+'&forecast_days=7&language=de'; const r=await fetch(url); if(!r.ok) throw 0; weatherData=await r.json(); wrender(); }
-    function wrender(){ q('#weather-location').textContent=weather.name; const c=weatherData&&weatherData.current; if(c){ q('#w-now-temp').textContent=fmt(c.temperature_2m,'°C'); q('#w-now-feels').textContent=fmt(c.apparent_temperature,'°C'); q('#w-now-rain').textContent=fmt(c.precipitation,' mm'); q('#w-now-wind').textContent=fmt(c.wind_speed_10m,' km/h'); q('#w-now-desc').textContent=wmoDesc(c.weather_code); } const tb=q('#w-forecast'); tb.innerHTML=''; const d=weatherData&&weatherData.daily; if(d){ for(let i=0;i<d.time.length;i++){ const dt=new Date(d.time[i]+'T12:00:00'); const dd=String(dt.getDate()).padStart(2,'0'); const mm=String(dt.getMonth()+1).padStart(2,'0'); const yyyy=dt.getFullYear(); const hi=Math.round(d.temperature_2m_max[i]); const lo=Math.round(d.temperature_2m_min[i]); const rain=Math.round(d.precipitation_sum[i]||0); const code=d.weather_code[i]; const tr=document.createElement('tr'); tr.innerHTML='<td>'+dd+'.'+mm+'.'+yyyy+'</td><td>'+hi+'° / '+lo+'°</td><td>'+rain+'</td><td>'+wmoDesc(code)+'</td>'; tb.appendChild(tr); } } }
-    function wschedule(){ if(weatherTimer) clearInterval(weatherTimer); const auto = q('#weather-auto'); if(auto && auto.checked){ weatherTimer=setInterval(()=>{ wfetch().catch(()=>{}); }, 10*60*1000); } }
+    function fmt(n,u){ return (n==null||Number.isNaN(n))? '—' : `${Math.round(n)}${u}`; }
+    function wmoDesc(code){ const m={0:'Klar',1:'Überwiegend klar',2:'Teilweise bewölkt',3:'Bedeckt',61:'Regen leicht',63:'Regen',65:'Regen stark',80:'Schauer leicht',81:'Schauer',82:'Schauer stark',95:'Gewitter'}; return m[code]||'—'; }
+    async function geocode(qs){ const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(qs)}&count=1&language=de`); if(!r.ok) throw 0; const j=await r.json(); const hit=j.results&&j.results[0]; if(!hit) throw 0; return {name:`${hit.name}${hit.country?', '+hit.country:''}`, lat:hit.latitude, lon:hit.longitude, tz:hit.timezone}; }
+    async function wfetch(){ const tz=weather.tz==='auto'?'auto':encodeURIComponent(weather.tz); const url=`https://api.open-meteo.com/v1/forecast?latitude=${weather.lat}&longitude=${weather.lon}&current=temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=${tz}&forecast_days=7&language=de`; const r=await fetch(url); if(!r.ok) throw 0; weatherData=await r.json(); wrender(); }
+    function wrender(){ q('#weather-location').textContent=weather.name; const c=weatherData&&weatherData.current; if(c){ q('#w-now-temp').textContent=fmt(c.temperature_2m,'°C'); q('#w-now-feels').textContent=fmt(c.apparent_temperature,'°C'); q('#w-now-rain').textContent=fmt(c.precipitation,' mm'); q('#w-now-wind').textContent=fmt(c.wind_speed_10m,' km/h'); q('#w-now-desc').textContent=wmoDesc(c.weather_code); } const tb=q('#w-forecast'); tb.innerHTML=''; const d=weatherData&&weatherData.daily; if(d){ for(let i=0;i<d.time.length;i++){ const dt=new Date(d.time[i]+'T12:00:00'); const dd=String(dt.getDate()).padStart(2,'0'); const mm=String(dt.getMonth()+1).padStart(2,'0'); const yyyy=dt.getFullYear(); const hi=Math.round(d.temperature_2m_max[i]); const lo=Math.round(d.temperature_2m_min[i]); const rain=Math.round(d.precipitation_sum[i]||0); const code=d.weather_code[i]; const tr=document.createElement('tr'); tr.innerHTML=`<td>${dd}.${mm}.${yyyy}</td><td>${hi}° / ${lo}°</td><td>${rain}</td><td>${wmoDesc(code)}</td>`; tb.appendChild(tr);} } }
+    function wschedule(){ if(weatherTimer) clearInterval(weatherTimer); if(q('#weather-auto')?.checked){ weatherTimer=setInterval(()=>{ wfetch().catch(()=>{}); }, 10*60*1000); } }
 
-    // ---------- Routing ----------
+    // Routing
     function setView(v){
-      const isN = (v==='nies');
-      q('#view-nies').hidden = !isN;
-      q('#view-wetter').hidden = isN;
+      const isN=(v==='nies'); q('#view-nies').hidden=!isN; q('#view-wetter').hidden=isN;
       document.querySelectorAll('.tab').forEach(b=> b.classList.toggle('active', b.dataset.nav===v));
       const u=new URL(location.href); u.searchParams.set('view', v);
       history.replaceState({},'',u.pathname+'?'+u.searchParams.toString()+location.hash);
       if(v==='wetter'){ wschedule(); if(!weatherData) wfetch().catch(()=>{}); }
     }
 
-    // ---------- Global events ----------
-    function onClick(e){
-      const a = e.target.closest('[data-action]');
+    // Events
+    document.addEventListener('click', async (e)=>{
+      const a=e.target.closest('[data-action]');
       if(a){
         const act=a.dataset.action;
         if(act==='inc') return void inc(1);
         if(act==='dec') return void dec(1);
-        if(act==='reset'){ uiConfirm('Heute wirklich auf 0 setzen?').then(ok=>ok&&resetTodayForce()); return; }
-        if(act==='del'){ const key=a.dataset.key; uiConfirm('Tag '+displayDateFromKey(key)+' wirklich löschen?').then(ok=>ok&&deleteDayForce(key)); return; }
+        if(act==='reset'){ const ok=await uiConfirm('Heute wirklich auf 0 setzen?'); if(ok) resetTodayForce(); return; }
+        if(act==='del'){ const key=a.dataset.key; const ok=await uiConfirm(`Tag ${displayDateFromKey(key)} wirklich löschen?`); if(ok) deleteDayForce(key); return; }
         if(act==='share'){
-          if(e.shiftKey){
-            if(!roomId) roomId=newRoomId(); liveMode=true; sharedMode=false;
-            history.replaceState({},'',relLive()); updateShareLink(); startLive(); pushLive();
-            const L=abs(relLive()); (navigator.clipboard&&navigator.clipboard.writeText(L)).catch(()=>{ prompt('Link',L); });
-          }else{
-            sharedMode=true; liveMode=false; updateShareLink();
-            const L=abs(relSnap()); (navigator.clipboard&&navigator.clipboard.writeText(L)).catch(()=>{ prompt('Link',L); });
-          }
-          q('#share-link') && q('#share-link').select();
+          if(e.shiftKey){ if(!roomId) roomId=newRoomId(); liveMode=true; sharedMode=false; history.replaceState({},'',relLive()); updateShareLink(); startLive(); pushLive(); const L=abs(relLive()); try{ await navigator.clipboard.writeText(L) }catch{ prompt('Link:',L) } q('#share-link')?.select(); }
+          else { sharedMode=true; liveMode=false; updateShareLink(); const L=abs(relSnap()); try{ await navigator.clipboard.writeText(L) }catch{ prompt('Link:',L) } q('#share-link')?.select(); }
           return;
         }
       }
-      const n = e.target.closest('[data-nav]'); if(n){ setView(n.dataset.nav); return; }
-      const w = e.target.closest('[data-weather]'); if(w){
-        const act=w.dataset.weather;
-        if(act==='search'){ const qs=(q('#weather-q')||{}).value||''; if(!qs.trim()) return; geocode(qs.trim()).then(loc=>{ weather={...weather, name:loc.name, lat:loc.lat, lon:loc.lon, tz:loc.tz||weather.tz}; wsave(); return wfetch(); }).catch(()=>alert('Ort nicht gefunden')); return; }
-        if(act==='loc'){ if(!navigator.geolocation) return alert('Geolocation nicht verfügbar'); navigator.geolocation.getCurrentPosition(async pos=>{ weather.name='Meine Position'; weather.lat=pos.coords.latitude; weather.lon=pos.coords.longitude; wsave(); try{ await wfetch(); }catch{} }, ()=>alert('Standort abgelehnt')); return; }
+      const n=e.target.closest('[data-nav]'); if(n){ setView(n.dataset.nav); return; }
+      const w=e.target.closest('[data-weather]'); if(w){ const act=w.dataset.weather;
+        if(act==='search'){ const qs=q('#weather-q').value.trim(); if(!qs) return; try{ const loc=await geocode(qs); weather={...weather, name:loc.name, lat:loc.lat, lon:loc.lon, tz:loc.tz||weather.tz}; wsave(); await wfetch(); }catch{ alert('Ort nicht gefunden'); } return; }
+        if(act==='loc'){ if(!navigator.geolocation) return void alert('Geolocation nicht verfügbar'); navigator.geolocation.getCurrentPosition(async pos=>{ weather.name='Meine Position'; weather.lat=pos.coords.latitude; weather.lon=pos.coords.longitude; wsave(); try{ await wfetch(); }catch{} }, ()=>alert('Standort abgelehnt')); return; }
         if(act==='refresh'){ wfetch().catch(()=>{}); return; }
       }
-    }
-    function onChange(e){ if(e.target && e.target.id==='weather-auto'){ weather.auto = !!e.target.checked; wsave(); wschedule(); } }
+    });
+    document.addEventListener('change', (e)=>{ if(e.target && e.target.id==='weather-auto'){ weather.auto=!!e.target.checked; wsave(); wschedule(); } });
+
+    // Hash / Rollover
     function parseHash(){ const h=location.hash||''; lastHash=h;
-      if(h.startsWith('#d=')){ try{ data=b64urlDecodeJSON(h.slice(3)); sharedMode=true; liveMode=false; roomId=null; lsSet(); }catch{} }
+      if(h.startsWith('#d=')){ try{ data=fromSnap(h.slice(3)); sharedMode=true; liveMode=false; roomId=null; lsSet(); }catch{} }
       else if(h.startsWith('#r=')){ roomId=h.slice(3); startLive(); }
     }
-    function onHash(){ if(location.hash!==lastHash){ parseHash(); render(); } }
+    window.addEventListener('hashchange', ()=>{ if(location.hash!==lastHash){ parseHash(); render(); } });
 
-    // ---------- Midnight rollover ----------
-    function scheduleMidnight(){ if(_midnightTimer) clearTimeout(_midnightTimer);
-      const now=new Date(); const next=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1,0,0,0,0);
-      _midnightTimer=setTimeout(()=>{ _currentDay=todayKey(); render(); scheduleMidnight(); }, next-now+50);
-    }
+    function scheduleMidnight(){ if(_midnightTimer) clearTimeout(_midnightTimer); const now=new Date(); const next=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1,0,0,0,0); _midnightTimer=setTimeout(()=>{ _currentDay=todayKey(); render(); scheduleMidnight(); }, next-now+50); }
     window.addEventListener('focus', ()=>{ const tk=todayKey(); if(tk!==_currentDay){ _currentDay=tk; render(); scheduleMidnight(); } });
 
-    // ---------- Init ----------
+    // Init
     function init(){
       data = lsGet();
       parseHash();
-      _currentDay = todayKey();
       render();
       scheduleMidnight();
       const p=new URLSearchParams(location.search).get('view');
       setView(p==='wetter'?'wetter':'nies');
-      // events
-      document.addEventListener('click', onClick, false);
-      document.addEventListener('change', onChange, false);
-      window.addEventListener('hashchange', onHash, false);
-      // weather prefs
       try{ wload(); }catch{}
-      const autoEl=q('#weather-auto'); if(autoEl) autoEl.checked=!!weather.auto;
+      const autoEl = q('#weather-auto'); if(autoEl){ autoEl.checked = !!weather.auto; }
     }
-
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, {once:true});
-    else init();
+    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init, {once:true}); else init();
   })();
   </script>
 </body>
