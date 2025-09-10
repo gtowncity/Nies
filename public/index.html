@@ -8,19 +8,17 @@
     :root{
       --sky1:#8ecbff; --sky2:#bfe6ff;
       --hill1:#9bd37a; --hill2:#6fc061;
-      --text:#22170a; --muted:#6b5b3a;
-      --paper:#fff6df;
+      --text:#22170a; --muted:#6b5b3a; --paper:#fff6df;
       --wood1:#4f311b; --wood2:#6c4223; --wood3:#996637;
       --gold1:#ffe38a; --gold2:#ffc25c; --gold3:#db8c28; --gold-border:#6d3f09;
       --red1:#ffd2c9; --red2:#ff9e8e; --red3:#e1705f; --red-border:#7d2e24;
       --blue1:#cfe9ff; --blue2:#9fd0ff; --blue3:#6fb1f2; --blue-border:#2a557c;
       --radius:0; --px:3px;
     }
-    *{box-sizing:border-box}
-    html,body{height:100%}
+    *{box-sizing:border-box} html,body{height:100%}
     body{
-      margin:0; color:var(--text); font-family: "Segoe UI", Frutiger, Arial, system-ui, sans-serif;
-      display:grid; place-items:start center; image-rendering: pixelated;
+      margin:0; color:var(--text); font-family:"Segoe UI", Frutiger, Arial, system-ui, sans-serif;
+      display:grid; place-items:start center; image-rendering:pixelated;
       background:
         radial-gradient(150px 60px at 22% 10%, rgba(255,255,255,.75), rgba(255,255,255,0) 70%),
         radial-gradient(200px 80px at 68% 12%, rgba(255,255,255,.75), rgba(255,255,255,0) 70%),
@@ -28,66 +26,62 @@
         radial-gradient(800px 180px at 20% 100%, var(--hill1) 0 60%, rgba(0,0,0,0) 61%),
         radial-gradient(900px 200px at 80% 100%, var(--hill2) 0 60%, rgba(0,0,0,0) 61%),
         linear-gradient(to bottom, var(--sky1), var(--sky2) 62%);
-      background-attachment: fixed;
+      background-attachment:fixed;
     }
-    .wrap{ width:min(1080px,92vw); padding:18px 20px 56px; }
-    header{ text-align:center; margin-bottom:8px; position:relative; z-index:1; }
-    header h1{ margin:6px 0 2px; font-weight:900; letter-spacing:1px; font-size:clamp(28px,4vw,44px); text-transform:uppercase; color:#2a1b06;
-      text-shadow: var(--px) var(--px) 0 #d8ae5f, calc(var(--px)*-1) var(--px) 0 #d8ae5f, var(--px) calc(var(--px)*-1) 0 #d8ae5f, calc(var(--px)*-1) calc(var(--px)*-1) 0 #d8ae5f, 0 calc(var(--px)*2) 0 rgba(0,0,0,.18); }
-    header .subtitle{ color:#4e3e25; font-size:clamp(12px,1.6vw,16px); }
-
-    .nav{ display:flex; justify-content:center; gap:8px; margin:8px auto 14px; }
-    .tab{ --pad:8px 14px; appearance:none; border-radius:var(--radius); padding:var(--pad); cursor:pointer; user-select:none; text-transform:uppercase;
-      border:2px solid var(--wood2); font-weight:900; color:#2a1f0f; background:#f7ead0; box-shadow: inset 0 1px 0 #fff, 0 var(--px) 0 rgba(0,0,0,.25), 0 calc(var(--px)*2) 0 rgba(0,0,0,.25); }
-    .tab.active{ border-color:var(--gold-border); background:linear-gradient(180deg, var(--gold1), var(--gold2) 60%, var(--gold3)); color:#3b2506; }
-
-    .grid{ display:grid; gap:14px; grid-template-columns:1fr; }
-    .board{ padding:10px; border:2px solid var(--wood1); background:
+    .wrap{width:min(1080px,92vw); padding:18px 20px 56px;}
+    header{text-align:center; margin-bottom:8px; position:relative; z-index:1;}
+    header h1{margin:6px 0 2px; font-weight:900; letter-spacing:1px; font-size:clamp(28px,4vw,44px); text-transform:uppercase; color:#2a1b06;
+      text-shadow:var(--px) var(--px) 0 #d8ae5f, calc(var(--px)*-1) var(--px) 0 #d8ae5f, var(--px) calc(var(--px)*-1) 0 #d8ae5f, calc(var(--px)*-1) calc(var(--px)*-1) 0 #d8ae5f, 0 calc(var(--px)*2) 0 rgba(0,0,0,.18);}
+    header .subtitle{color:#4e3e25; font-size:clamp(12px,1.6vw,16px);}
+    .nav{display:flex; justify-content:center; gap:8px; margin:8px auto 14px;}
+    .tab{--pad:8px 14px; appearance:none; border-radius:var(--radius); padding:var(--pad); cursor:pointer; user-select:none; text-transform:uppercase;
+      border:2px solid var(--wood2); font-weight:900; color:#2a1f0f; background:#f7ead0; box-shadow:inset 0 1px 0 #fff, 0 var(--px) 0 rgba(0,0,0,.25), 0 calc(var(--px)*2) 0 rgba(0,0,0,.25);}
+    .tab.active{border-color:var(--gold-border); background:linear-gradient(180deg, var(--gold1), var(--gold2) 60%, var(--gold3)); color:#3b2506;}
+    .grid{display:grid; gap:14px; grid-template-columns:1fr;}
+    .board{padding:10px; border:2px solid var(--wood1); background:
       linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0)),
       repeating-linear-gradient(90deg, var(--wood3) 0 12px, var(--wood2) 12px 24px, var(--wood3) 24px 36px);
-      box-shadow: 0 var(--px) 0 rgba(0,0,0,.35), 0 calc(var(--px)*2) 0 rgba(0,0,0,.35), 0 calc(var(--px)*6) calc(var(--px)*3) rgba(0,0,0,.22); }
-    .card{ position:relative; overflow:hidden; border-radius:var(--radius); background: linear-gradient(180deg,#fff9e8,var(--paper)); border:2px solid var(--wood2); box-shadow: inset 0 var(--px) 0 #fff; padding:16px; }
-    .card::after{ content:""; position:absolute; inset:0; pointer-events:none; background-image: linear-gradient(90deg, rgba(0,0,0,.04) 1px, transparent 1px), linear-gradient(0deg, rgba(0,0,0,.04) 1px, transparent 1px); background-size:2px 2px, 2px 2px; mix-blend-mode:multiply; }
-    .card h2{ margin:0 0 10px; font-size:18px; font-weight:900; text-align:center; text-transform:uppercase; letter-spacing:.5px; }
-    .today-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
-    .today-label{ font-size:16px; font-weight:900; text-transform:uppercase; letter-spacing:.5px; }
-    .today-value{ text-align:center; font-size:clamp(48px,9vw,92px); font-weight:900; line-height:1; margin:8px 0 0; color:#1e160b;
-      text-shadow: var(--px) var(--px) 0 #d8ae5f, calc(var(--px)*-1) var(--px) 0 #d8ae5f, var(--px) calc(var(--px)*-1) 0 #d8ae5f, calc(var(--px)*-1) calc(var(--px)*-1) 0 #d8ae5f; }
-    .btns{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .btn{ --pad:10px 16px; appearance:none; border-radius:var(--radius); padding:var(--pad); cursor:pointer; user-select:none; text-transform:uppercase;
+      box-shadow:0 var(--px) 0 rgba(0,0,0,.35), 0 calc(var(--px)*2) 0 rgba(0,0,0,.35), 0 calc(var(--px)*6) calc(var(--px)*3) rgba(0,0,0,.22);}
+    .card{position:relative; overflow:hidden; border-radius:var(--radius); background:linear-gradient(180deg,#fff9e8,var(--paper)); border:2px solid var(--wood2); box-shadow:inset 0 var(--px) 0 #fff; padding:16px;}
+    .card::after{content:""; position:absolute; inset:0; pointer-events:none; background-image:
+      linear-gradient(90deg, rgba(0,0,0,.04) 1px, transparent 1px), linear-gradient(0deg, rgba(0,0,0,.04) 1px, transparent 1px);
+      background-size:2px 2px, 2px 2px; mix-blend-mode:multiply;}
+    .card h2{margin:0 0 10px; font-size:18px; font-weight:900; text-align:center; text-transform:uppercase; letter-spacing:.5px;}
+    .today-head{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+    .today-label{font-size:16px; font-weight:900; text-transform:uppercase; letter-spacing:.5px;}
+    .today-value{text-align:center; font-size:clamp(48px,9vw,92px); font-weight:900; line-height:1; margin:8px 0 0; color:#1e160b;
+      text-shadow:var(--px) var(--px) 0 #d8ae5f, calc(var(--px)*-1) var(--px) 0 #d8ae5f, var(--px) calc(var(--px)*-1) 0 #d8ae5f, calc(var(--px)*-1) calc(var(--px)*-1) 0 #d8ae5f;}
+    .btns{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+    .btn{--pad:10px 16px; appearance:none; border-radius:var(--radius); padding:var(--pad); cursor:pointer; user-select:none; text-transform:uppercase;
       border:2px solid var(--gold-border); font-weight:900; color:#3b2506;
-      background: linear-gradient(180deg, var(--gold1), var(--gold2) 60%, var(--gold3)); box-shadow: 0 var(--px) 0 rgba(0,0,0,.35), 0 calc(var(--px)*2) 0 rgba(0,0,0,.35), inset 0 1px 0 #fff7d0; transition: transform .05s ease, box-shadow .05s ease; }
-    .btn:active{ transform: translateY(1px); box-shadow: 0 calc(var(--px)*.5) 0 rgba(0,0,0,.35), 0 var(--px) 0 rgba(0,0,0,.35), inset 0 1px 0 #fff7d0; }
-    .btn.secondary{ background: linear-gradient(180deg, var(--blue1), var(--blue2) 60%, var(--blue3)); border-color: var(--blue-border); color:#13314b; }
-    .btn.danger{ background: linear-gradient(180deg, var(--red1), var(--red2) 60%, var(--red3)); border-color: var(--red-border); color:#4b1411; }
-    .btn.ghost{ background:#f7ead0; border-color: var(--wood2); color:#2a1f0f; box-shadow: inset 0 1px 0 #fff; }
-    .btn.small{ --pad:8px 10px; font-size:14px; }
-
-    .stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; text-align:center; margin-top:6px; }
-    .stat{ background:#fff4db; border:2px solid var(--wood2); border-radius:var(--radius); padding:10px; box-shadow: inset 0 1px 0 #fff; }
-    .stat .label{ color:#695333; font-size:12px; font-weight:800; text-transform:uppercase; }
-    .stat .value{ font-size:18px; font-weight:900; margin-top:4px; }
-
-    .share{ display:flex; gap:8px; align-items:center; margin-top:10px; }
-    .share input{ flex:1; padding:11px; border-radius:var(--radius); border:2px solid var(--wood2); background:#fff9e9; color:#2a1f0f; outline:none; box-shadow: inset 0 1px 0 #fff; font-weight:700; }
-
-    table{ width:100%; border-collapse:collapse; }
-    thead th{ text-align:left; color:#6b5b3a; font-weight:900; padding:10px 8px; border-bottom:2px solid var(--wood2); text-transform:uppercase; }
-    tbody td{ padding:9px 8px; border-bottom:1px solid #e5d7b5; vertical-align:middle; }
-    tbody tr:hover{ background:#fff4db; }
-    td.actions{ text-align:right; }
-
-    #confirm-overlay[hidden]{ display:none; }
-    #confirm-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.35); display:grid; place-items:center; z-index:50; image-rendering:pixelated; }
-    .confirm{ width:min(420px,92vw); background:linear-gradient(180deg,#fff9e8,#fff3d2); border:2px solid var(--wood2); border-radius:var(--radius); box-shadow: 0 var(--px) 0 rgba(0,0,0,.35), 0 calc(var(--px)*2) 0 rgba(0,0,0,.35), 0 calc(var(--px)*6) calc(var(--px)*3) rgba(0,0,0,.22); padding:16px; }
-    .confirm .msg{ margin-bottom:12px; font-weight:900; text-align:center; text-transform:uppercase; }
-    .confirm .row{ display:flex; gap:8px; justify-content:flex-end; }
-
-    [hidden]{ display:none !important; }
+      background:linear-gradient(180deg, var(--gold1), var(--gold2) 60%, var(--gold3));
+      box-shadow:0 var(--px) 0 rgba(0,0,0,.35), 0 calc(var(--px)*2) 0 rgba(0,0,0,.35), inset 0 1px 0 #fff7d0; transition:transform .05s, box-shadow .05s;}
+    .btn:active{transform:translateY(1px); box-shadow:0 calc(var(--px)*.5) 0 rgba(0,0,0,.35), 0 var(--px) 0 rgba(0,0,0,.35), inset 0 1px 0 #fff7d0;}
+    .btn.secondary{background:linear-gradient(180deg, var(--blue1), var(--blue2) 60%, var(--blue3)); border-color:var(--blue-border); color:#13314b;}
+    .btn.danger{background:linear-gradient(180deg, var(--red1), var(--red2) 60%, var(--red3)); border-color:var(--red-border); color:#4b1411;}
+    .btn.ghost{background:#f7ead0; border-color:var(--wood2); color:#2a1f0f; box-shadow:inset 0 1px 0 #fff;}
+    .btn.small{--pad:8px 10px; font-size:14px;}
+    .stats{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; text-align:center; margin-top:6px;}
+    .stat{background:#fff4db; border:2px solid var(--wood2); border-radius:var(--radius); padding:10px; box-shadow:inset 0 1px 0 #fff;}
+    .stat .label{color:#695333; font-size:12px; font-weight:800; text-transform:uppercase;}
+    .stat .value{font-size:18px; font-weight:900; margin-top:4px;}
+    .share{display:flex; gap:8px; align-items:center; margin-top:10px;}
+    .share input{flex:1; padding:11px; border-radius:var(--radius); border:2px solid var(--wood2); background:#fff9e9; color:#2a1f0f; outline:none; box-shadow:inset 0 1px 0 #fff; font-weight:700;}
+    table{width:100%; border-collapse:collapse;}
+    thead th{text-align:left; color:#6b5b3a; font-weight:900; padding:10px 8px; border-bottom:2px solid var(--wood2); text-transform:uppercase;}
+    tbody td{padding:9px 8px; border-bottom:1px solid #e5d7b5; vertical-align:middle;}
+    tbody tr:hover{background:#fff4db;} td.actions{text-align:right;}
+    #confirm-overlay[hidden]{display:none;}
+    #confirm-overlay{position:fixed; inset:0; background:rgba(0,0,0,.35); display:grid; place-items:center; z-index:50; image-rendering:pixelated;}
+    .confirm{width:min(420px,92vw); background:linear-gradient(180deg,#fff9e8,#fff3d2); border:2px solid var(--wood2); border-radius:var(--radius);
+      box-shadow:0 var(--px) 0 rgba(0,0,0,.35), 0 calc(var(--px)*2) 0 rgba(0,0,0,.35), 0 calc(var(--px)*6) calc(var(--px)*3) rgba(0,0,0,.22); padding:16px;}
+    .confirm .msg{margin-bottom:12px; font-weight:900; text-align:center; text-transform:uppercase;}
+    .confirm .row{display:flex; gap:8px; justify-content:flex-end;}
+    [hidden]{display:none!important}
   </style>
 </head>
 <body>
-  <main class="wrap" id="app" aria-live="polite">
+  <main class="wrap" aria-live="polite">
     <header>
       <h1>Nies-O-Mat</h1>
       <div class="subtitle">Büro-Gadget im Pixelstil – Nies-Zähler & Wetter.</div>
@@ -97,7 +91,7 @@
       </nav>
     </header>
 
-    <!-- NIES -->
+    <!-- Nies -->
     <section id="view-nies" class="grid">
       <section class="board">
         <section class="card">
@@ -126,6 +120,9 @@
             <button type="button" class="btn" data-action="share">Teilen (bearbeitbar)</button>
             <input id="share-link" type="text" readonly placeholder="Link wird hier angezeigt …" />
           </div>
+          <div style="font-size:12px;color:#6b5b3a;margin-top:6px">
+            Tipp: <b>Shift + Teilen</b> = Pantry-Live (<code>#p=…</code>) · <b>ohne Shift</b> = Snapshot (<code>#d=…</code>) · <b>Alt+Shift</b> = lokales SSE (<code>#r=…</code>)
+          </div>
         </section>
       </section>
 
@@ -133,16 +130,14 @@
         <section class="card">
           <h2>Tage</h2>
           <table>
-            <thead>
-              <tr><th style="width:46%">Datum</th><th style="width:24%">Nieser</th><th class="actions" style="width:30%">Aktion</th></tr>
-            </thead>
+            <thead><tr><th style="width:46%">Datum</th><th style="width:24%">Nieser</th><th class="actions" style="width:30%">Aktion</th></tr></thead>
             <tbody id="days-body"></tbody>
           </table>
         </section>
       </section>
     </section>
 
-    <!-- WETTER -->
+    <!-- Wetter (wie gehabt, kurz) -->
     <section id="view-wetter" class="grid" hidden>
       <section class="board">
         <section class="card">
@@ -182,111 +177,86 @@
 
   <script>
   (function(){
+    // ===== Helpers =====
     const q = s => document.querySelector(s);
     const pad = n => String(n).padStart(2,'0');
     const todayKey = (d=new Date()) => [d.getFullYear(), pad(d.getMonth()+1), pad(d.getDate())].join('-');
     const displayDateFromKey = k => { const [y,m,d]=k.split('-'); return `${d}.${m}.${y}`; };
     const prevDayKey = k => { const [y,m,d]=k.split('-').map(Number); return todayKey(new Date(y,m-1,d-1)); };
 
-    // Base64URL <-> JSON (ohne deprecated escape/unescape)
-    function toSnap(obj){
-      const bytes = new TextEncoder().encode(JSON.stringify(obj));
-      let bin=""; for(let i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]);
-      return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-    }
-    function fromSnap(s){
-      const padLen = (4 - (s.length % 4)) % 4;
-      const b64 = s.replace(/-/g,'+').replace(/_/g,'/') + '='.repeat(padLen);
-      const bin = atob(b64);
-      const bytes = new Uint8Array(bin.length);
-      for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
-      return JSON.parse(new TextDecoder().decode(bytes));
-    }
+    // Base64URL JSON
+    function toSnap(obj){ const bytes=new TextEncoder().encode(JSON.stringify(obj)); let bin=""; for (const b of bytes) bin+=String.fromCharCode(b); return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+    function fromSnap(s){ const pad=(4-(s.length%4))%4; const b64=s.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat(pad); const bin=atob(b64); const u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i); return JSON.parse(new TextDecoder().decode(u8)); }
+    function newId(){ const b=new Uint8Array(16); crypto.getRandomValues(b); let bin=''; for(const x of b) bin+=String.fromCharCode(x); return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
 
+    // ===== State =====
     const STORAGE_KEY='sneezeCounterDataV2';
-    let data={}, _currentDay=null, _midnightTimer=null;
-    let sharedMode=false, liveMode=false, roomId=null, es=null, lastHash='';
-    let pollTimer=null;
+    let data = {};
+    let _currentDay = null;
+    let _midnightTimer = null;
 
-    const lsGet=()=>{ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); }catch{ return {}; } };
-    const lsSet=()=>{ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }catch{} };
+    // Share modes
+    let mode=null;            // 'snapshot' | 'pantry' | 'sse' | null
+    let pantry = { id:null, basket:'nies', poll:null, pushing:false, lastSent:'' };
+    let roomId=null, es=null; // for SSE (optional)
 
-    const relSnap=()=>location.pathname+location.search+'#d='+toSnap(data);
-    const relLive=()=>location.pathname+location.search+'#r='+roomId;
-    const abs=r=>location.origin+r;
+    // ===== Local storage =====
+    function lsGet(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); }catch{ return {}; } }
+    function lsSet(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }catch{} }
 
-    function updateShareLink(){
-      const i=q('#share-link'); if(!i) return;
-      i.value = abs(liveMode && roomId ? relLive() : relSnap());
-      if(sharedMode) history.replaceState({},'',relSnap());
-    }
-
-    function newRoomId(){
-      const b=new Uint8Array(16); crypto.getRandomValues(b);
-      let bin=""; for(let i=0;i<b.length;i++) bin += String.fromCharCode(b[i]);
-      return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-    }
-    function liveBase(){ return location.origin.replace(/\/$/,'') + '/live/' + roomId; }
-    function startPoll(){
-      stopPoll();
-      pollTimer=setInterval(async ()=>{
-        try{
-          const r=await fetch(liveBase()+'/last',{cache:'no-store'});
-          if(!r.ok) return;
-          const incoming=await r.json();
-          if(incoming && Object.keys(incoming).length &&
-             JSON.stringify(incoming)!==JSON.stringify(data)){
-            data=incoming; lsSet(); render();
-          }
-        }catch{}
-      }, 2000);
-    }
-    function stopPoll(){ if(pollTimer){ clearInterval(pollTimer); pollTimer=null; } }
-
-    function startLive(){
-      if(!roomId) return;
-      if(es) es.close();
-      es = new EventSource(liveBase());
-      es.onopen = ()=>{ stopPoll(); }; // SSE aktiv -> Poll aus
-      es.onmessage = e => { try{
-        const incoming=JSON.parse(e.data);
-        if(JSON.stringify(incoming)!==JSON.stringify(data)){
-          data=incoming; lsSet(); render();
+    // ====== Pantry Live (no server) ======
+    const PANTRY_BASE = 'https://api.getpantry.cloud/apiv1/pantry/';
+    function pantryUrl(){ return `${PANTRY_BASE}${pantry.id}/basket/${encodeURIComponent(pantry.basket)}`; }
+    async function pantryFetch(){
+      if(!pantry.id) return;
+      try{
+        const r=await fetch(pantryUrl(), {cache:'no-store'});
+        if(r.status===404) return; // noch leer
+        if(!r.ok) return;
+        const incoming = await r.json();
+        if(incoming && JSON.stringify(incoming)!==JSON.stringify(data)){
+          data = incoming; lsSet(); render();
         }
-      }catch{} };
-      es.onerror = ()=>{ startPoll(); }; // Fallback
-      liveMode = true; sharedMode=false;
+      }catch{}
+    }
+    async function pantryPush(){
+      if(!pantry.id) return;
+      try{
+        const body = JSON.stringify(data);
+        if(body===pantry.lastSent) return; // keine unnötigen Writes
+        pantry.lastSent = body; pantry.pushing = true;
+        await fetch(pantryUrl(), { method:'PUT', headers:{'Content-Type':'application/json'}, body });
+      }catch{} finally{ pantry.pushing=false; }
+    }
+    function pantryStart(id,basket='nies'){
+      pantry.id=id; pantry.basket=basket||'nies'; mode='pantry';
+      if(pantry.poll) clearInterval(pantry.poll);
+      pantry.poll = setInterval(pantryFetch, 2000); // ~live
+      pantryFetch(); // initial
+      history.replaceState({},'',`#p=${pantry.id}:${pantry.basket}`);
       updateShareLink();
-    }
-    function pushLive(){
-      if(!(liveMode && roomId)) return;
-      fetch(liveBase(), {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)}).catch(()=>{});
+      pantryPush(); // eigenen Stand hochladen
     }
 
-    function inc(n=1){ const k=_currentDay||todayKey(); data[k]=Number(data[k]||0)+Number(n||0); lsSet(); render(); updateShareLink(); pushLive(); }
-    function dec(n=1){ const k=_currentDay||todayKey(); data[k]=Math.max(0, Number(data[k]||0)-Number(n||0)); lsSet(); render(); updateShareLink(); pushLive(); }
-    function resetTodayForce(){ const k=_currentDay||todayKey(); data[k]=0; lsSet(); render(); updateShareLink(); pushLive(); }
-    function deleteDayForce(key){ if(!(key in data)) return; delete data[key]; lsSet(); render(); updateShareLink(); pushLive(); }
+    // ====== Optional: lokales SSE (wie gehabt) ======
+    function liveEndpoint(){ return location.origin.replace(/\/$/,'') + '/live/' + roomId; }
+    function sseStart(id){ roomId=id; mode='sse'; es&&es.close(); es=new EventSource(liveEndpoint()); es.onmessage=e=>{ try{ const incoming=JSON.parse(e.data); if(JSON.stringify(incoming)!==JSON.stringify(data)){ data=incoming; lsSet(); render(); } }catch{} }; history.replaceState({},'',`#r=${roomId}`); updateShareLink(); ssePush(); }
+    function ssePush(){ if(mode!=='sse'||!roomId) return; fetch(liveEndpoint(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).catch(()=>{}); }
 
-    function uiConfirm(message){
-      return new Promise(res=>{
-        const ov=q('#confirm-overlay'), m=q('#confirm-title');
-        m.textContent=message; ov.hidden=false;
-        function close(ok){ ov.hidden=true; ov.removeEventListener('click',onClick); document.removeEventListener('keydown',onKey); res(ok); }
-        function onClick(e){ const b=e.target.closest('[data-confirm]'); if(!b) return; close(b.dataset.confirm==='yes'); }
-        function onKey(e){ if(e.key==='Escape') close(false); }
-        ov.addEventListener('click', onClick); document.addEventListener('keydown', onKey);
-      });
-    }
+    // ====== Actions ======
+    function inc(n=1){ const k=_currentDay||todayKey(); data[k]=Number(data[k]||0)+Number(n||0); lsSet(); render(); pushLive(); }
+    function dec(n=1){ const k=_currentDay||todayKey(); data[k]=Math.max(0, Number(data[k]||0)-Number(n||0)); lsSet(); render(); pushLive(); }
+    function resetTodayForce(){ const k=_currentDay||todayKey(); data[k]=0; lsSet(); render(); pushLive(); }
+    function deleteDayForce(key){ if(!(key in data)) return; delete data[key]; lsSet(); render(); pushLive(); }
+    function pushLive(){ if(mode==='pantry') pantryPush(); else if(mode==='sse') ssePush(); }
 
+    // ====== UI ======
     function computeStats(obj){
       const keys=Object.keys(obj);
       let total=0,days=0,best=0,bestKey=null;
-      for(const k of keys){ const v=Number(obj[k]||0);
-        if(v>0){ total+=v; days++; if(v>best || (v===best && (!bestKey||k>bestKey))){ best=v; bestKey=k; } }
-      }
+      for(const k of keys){ const v=Number(obj[k]||0); if(v>0){ total+=v; days++; if(v>best||(v===best&&(!bestKey||k>bestKey))){ best=v; bestKey=k; } } }
       let streak=0,cur=todayKey(); while(Number(obj[cur]||0)>0){ streak++; cur=prevDayKey(cur); }
-      return { total, avg: days? total/days : 0, best, bestDay: bestKey?displayDateFromKey(bestKey):'—', streak };
+      return { total, avg:days?total/days:0, best, bestDay:bestKey?displayDateFromKey(bestKey):'—', streak };
     }
     function render(){
       _currentDay=todayKey();
@@ -301,34 +271,49 @@
       Object.keys(data).sort((a,b)=>a<b?1:-1).forEach(k=>{
         const tr=document.createElement('tr');
         tr.innerHTML=`<td>${displayDateFromKey(k)}</td><td>${Number(data[k]||0)}</td>
-                      <td class="actions"><button type="button" class="btn ghost small" data-action="del" data-key="${k}">Löschen</button></td>`;
+          <td class="actions"><button type="button" class="btn ghost small" data-action="del" data-key="${k}">Löschen</button></td>`;
         tb.appendChild(tr);
       });
+      updateShareLink();
+    }
+    function updateShareLink(){
+      const input=q('#share-link'); if(!input) return;
+      const base=location.origin+location.pathname+location.search;
+      if(mode==='pantry' && pantry.id) input.value=`${base}#p=${pantry.id}:${pantry.basket}`;
+      else if(mode==='sse' && roomId) input.value=`${base}#r=${roomId}`;
+      else input.value=`${base}#d=${toSnap(data)}`;
+      if(mode==='snapshot') history.replaceState({},'',`#d=${toSnap(data)}`);
     }
 
-    // Wetter (wie gehabt, gekürzt)
+    // ====== Confirm ======
+    function uiConfirm(msg){ return new Promise(res=>{
+      const ov=document.getElementById('confirm-overlay'), m=document.getElementById('confirm-title');
+      m.textContent=msg; ov.hidden=false;
+      function close(ok){ ov.hidden=true; ov.removeEventListener('click',onClick); document.removeEventListener('keydown',onKey); res(ok); }
+      function onClick(e){ const b=e.target.closest('[data-confirm]'); if(!b) return; close(b.dataset.confirm==='yes'); }
+      function onKey(e){ if(e.key==='Escape') close(false); }
+      ov.addEventListener('click', onClick); document.addEventListener('keydown', onKey);
+    });}
+
+    // ====== Weather (gekürzt) ======
     const WKEY='niesWeatherPrefsV1';
     let weather={name:'Berlin, DE', lat:52.52, lon:13.405, auto:true, tz:Intl.DateTimeFormat().resolvedOptions().timeZone||'auto'};
-    let weatherTimer=null, weatherData=null;
+    let weatherData=null, weatherTimer=null;
     function wsave(){ try{ localStorage.setItem(WKEY, JSON.stringify(weather)); }catch{} }
     function wload(){ try{ const raw=localStorage.getItem(WKEY); if(raw){ const p=JSON.parse(raw); if(p&&typeof p==='object') weather={...weather,...p}; } }catch{} }
     function fmt(n,u){ return (n==null||Number.isNaN(n))? '—' : `${Math.round(n)}${u}`; }
-    function wmoDesc(code){ const m={0:'Klar',1:'Überwiegend klar',2:'Teilweise bewölkt',3:'Bedeckt',61:'Regen leicht',63:'Regen',65:'Regen stark',80:'Schauer leicht',81:'Schauer',82:'Schauer stark',95:'Gewitter'}; return m[code]||'—'; }
-    async function geocode(qs){ const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(qs)}&count=1&language=de`); if(!r.ok) throw 0; const j=await r.json(); const hit=j.results&&j.results[0]; if(!hit) throw 0; return {name:`${hit.name}${hit.country?', '+hit.country:''}`, lat:hit.latitude, lon:hit.longitude, tz:hit.timezone}; }
-    async function wfetch(){ const tz=weather.tz==='auto'?'auto':encodeURIComponent(weather.tz); const url=`https://api.open-meteo.com/v1/forecast?latitude=${weather.lat}&longitude=${weather.lon}&current=temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=${tz}&forecast_days=7&language=de`; const r=await fetch(url); if(!r.ok) throw 0; weatherData=await r.json(); wrender(); }
-    function wrender(){ q('#weather-location').textContent=weather.name; const c=weatherData&&weatherData.current; if(c){ q('#w-now-temp').textContent=fmt(c.temperature_2m,'°C'); q('#w-now-feels').textContent=fmt(c.apparent_temperature,'°C'); q('#w-now-rain').textContent=fmt(c.precipitation,' mm'); q('#w-now-wind').textContent=fmt(c.wind_speed_10m,' km/h'); q('#w-now-desc').textContent=wmoDesc(c.weather_code); } const tb=q('#w-forecast'); tb.innerHTML=''; const d=weatherData&&weatherData.daily; if(d){ for(let i=0;i<d.time.length;i++){ const dt=new Date(d.time[i]+'T12:00:00'); const dd=String(dt.getDate()).padStart(2,'0'); const mm=String(dt.getMonth()+1).padStart(2,'0'); const yyyy=dt.getFullYear(); const hi=Math.round(d.temperature_2m_max[i]); const lo=Math.round(d.temperature_2m_min[i]); const rain=Math.round(d.precipitation_sum[i]||0); const code=d.weather_code[i]; const tr=document.createElement('tr'); tr.innerHTML=`<td>${dd}.${mm}.${yyyy}</td><td>${hi}° / ${lo}°</td><td>${rain}</td><td>${wmoDesc(code)}</td>`; tb.appendChild(tr);} } }
+    function wmo(code){ const m={0:'Klar',1:'Überwiegend klar',2:'Teilweise bewölkt',3:'Bedeckt',61:'Regen leicht',63:'Regen',65:'Regen stark',80:'Schauer leicht',81:'Schauer',82:'Schauer stark',95:'Gewitter'}; return m[code]||'—'; }
+    async function geocode(qs){ const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(qs)}&count=1&language=de`); const j=await r.json(); const hit=j.results&&j.results[0]; if(!hit) throw 0; return {name:`${hit.name}${hit.country?', '+hit.country:''}`, lat:hit.latitude, lon:hit.longitude, tz:hit.timezone}; }
+    async function wfetch(){ const tz=weather.tz==='auto'?'auto':encodeURIComponent(weather.tz); const url=`https://api.open-meteo.com/v1/forecast?latitude=${weather.lat}&longitude=${weather.lon}&current=temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=${tz}&forecast_days=7&language=de`; const r=await fetch(url); if(!r.ok) return; weatherData=await r.json(); wrender(); }
+    function wrender(){ q('#weather-location').textContent=weather.name; const c=weatherData&&weatherData.current; if(c){ q('#w-now-temp').textContent=fmt(c.temperature_2m,'°C'); q('#w-now-feels').textContent=fmt(c.apparent_temperature,'°C'); q('#w-now-rain').textContent=fmt(c.precipitation,' mm'); q('#w-now-wind').textContent=fmt(c.wind_speed_10m,' km/h'); q('#w-now-desc').textContent=wmo(c.weather_code); } const tb=q('#w-forecast'); tb.innerHTML=''; const d=weatherData&&weatherData.daily; if(d){ for(let i=0;i<d.time.length;i++){ const dt=new Date(d.time[i]+'T12:00:00'); const dd=String(dt.getDate()).padStart(2,'0'); const mm=String(dt.getMonth()+1).padStart(2,'0'); const yyyy=dt.getFullYear(); const hi=Math.round(d.temperature_2m_max[i]); const lo=Math.round(d.temperature_2m_min[i]); const rain=Math.round(d.precipitation_sum[i]||0); const code=d.weather_code[i]; const tr=document.createElement('tr'); tr.innerHTML=`<td>${dd}.${mm}.${yyyy}</td><td>${hi}° / ${lo}°</td><td>${rain}</td><td>${wmo(code)}</td>`; tb.appendChild(tr);} } }
     function wschedule(){ if(weatherTimer) clearInterval(weatherTimer); if(q('#weather-auto')?.checked){ weatherTimer=setInterval(()=>{ wfetch().catch(()=>{}); }, 10*60*1000); } }
 
-    // Routing
-    function setView(v){
-      const isN=(v==='nies'); q('#view-nies').hidden=!isN; q('#view-wetter').hidden=isN;
-      document.querySelectorAll('.tab').forEach(b=> b.classList.toggle('active', b.dataset.nav===v));
-      const u=new URL(location.href); u.searchParams.set('view', v);
-      history.replaceState({},'',u.pathname+'?'+u.searchParams.toString()+location.hash);
-      if(v==='wetter'){ wschedule(); if(!weatherData) wfetch().catch(()=>{}); }
-    }
+    // ====== Routing & Events ======
+    function setView(v){ const isN=(v==='nies'); q('#view-nies').hidden=!isN; q('#view-wetter').hidden=isN;
+      document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b.dataset.nav===v));
+      const u=new URL(location.href); u.searchParams.set('view', v); history.replaceState({},'',u.pathname+'?'+u.searchParams.toString()+location.hash);
+      if(v==='wetter'){ wschedule(); if(!weatherData) wfetch().catch(()=>{}); } }
 
-    // Events
     document.addEventListener('click', async (e)=>{
       const a=e.target.closest('[data-action]');
       if(a){
@@ -338,31 +323,51 @@
         if(act==='reset'){ const ok=await uiConfirm('Heute wirklich auf 0 setzen?'); if(ok) resetTodayForce(); return; }
         if(act==='del'){ const key=a.dataset.key; const ok=await uiConfirm(`Tag ${displayDateFromKey(key)} wirklich löschen?`); if(ok) deleteDayForce(key); return; }
         if(act==='share'){
-          if(e.shiftKey){ if(!roomId) roomId=newRoomId(); liveMode=true; sharedMode=false; history.replaceState({},'',relLive()); updateShareLink(); startLive(); pushLive(); const L=abs(relLive()); try{ await navigator.clipboard.writeText(L) }catch{ prompt('Link:',L) } q('#share-link')?.select(); }
-          else { sharedMode=true; liveMode=false; updateShareLink(); const L=abs(relSnap()); try{ await navigator.clipboard.writeText(L) }catch{ prompt('Link:',L) } q('#share-link')?.select(); }
+          if(e.shiftKey && !e.altKey){
+            // Pantry-Live: ID abfragen, Link bauen
+            let id = pantry.id || prompt('Pantry-ID einfügen (getpantry.cloud → Create Pantry):');
+            if(!id) return;
+            pantryStart(id,'nies');
+            const L=location.origin+location.pathname+location.search+`#p=${id}:nies`;
+            try{ await navigator.clipboard.writeText(L) }catch{ prompt('Link:', L) }
+          } else if(e.shiftKey && e.altKey){
+            // optional: lokales SSE
+            if(!roomId) roomId=newId(); sseStart(roomId);
+            const L=location.origin+location.pathname+location.search+`#r=${roomId}`;
+            try{ await navigator.clipboard.writeText(L) }catch{ prompt('Link:', L) }
+          } else {
+            // Snapshot
+            mode='snapshot';
+            const L=location.origin+location.pathname+location.search+`#d=${toSnap(data)}`;
+            history.replaceState({},'',`#d=${toSnap(data)}`);
+            try{ await navigator.clipboard.writeText(L) }catch{ prompt('Link:', L) }
+          }
+          q('#share-link')?.select();
           return;
         }
       }
       const n=e.target.closest('[data-nav]'); if(n){ setView(n.dataset.nav); return; }
-      const w=e.target.closest('[data-weather]'); if(w){ const act=w.dataset.weather;
-        if(act==='search'){ const qs=q('#weather-q').value.trim(); if(!qs) return; try{ const loc=await geocode(qs); weather={...weather, name:loc.name, lat:loc.lat, lon:loc.lon, tz:loc.tz||weather.tz}; wsave(); await wfetch(); }catch{ alert('Ort nicht gefunden'); } return; }
-        if(act==='loc'){ if(!navigator.geolocation) return void alert('Geolocation nicht verfügbar'); navigator.geolocation.getCurrentPosition(async pos=>{ weather.name='Meine Position'; weather.lat=pos.coords.latitude; weather.lon=pos.coords.longitude; wsave(); try{ await wfetch(); }catch{} }, ()=>alert('Standort abgelehnt')); return; }
+      const w=e.target.closest('[data-weather]'); if(w){
+        const act=w.dataset.weather;
+        if(act==='search'){ const qs=(q('#weather-q')||{}).value||''; if(!qs.trim()) return; try{ const loc=await geocode(qs.trim()); weather={...weather, name:loc.name, lat:loc.lat, lon:loc.lon, tz:loc.tz||weather.tz}; wsave(); await wfetch(); }catch{ alert('Ort nicht gefunden'); } return; }
+        if(act==='loc'){ if(!navigator.geolocation) return alert('Geolocation nicht verfügbar'); navigator.geolocation.getCurrentPosition(async pos=>{ weather.name='Meine Position'; weather.lat=pos.coords.latitude; weather.lon=pos.coords.longitude; wsave(); try{ await wfetch(); }catch{} }, ()=>alert('Standort abgelehnt')); return; }
         if(act==='refresh'){ wfetch().catch(()=>{}); return; }
       }
     });
-    document.addEventListener('change', (e)=>{ if(e.target && e.target.id==='weather-auto'){ weather.auto=!!e.target.checked; wsave(); wschedule(); } });
 
-    // Hash / Rollover
-    function parseHash(){ const h=location.hash||''; lastHash=h;
-      if(h.startsWith('#d=')){ try{ data=fromSnap(h.slice(3)); sharedMode=true; liveMode=false; roomId=null; lsSet(); }catch{} }
-      else if(h.startsWith('#r=')){ roomId=h.slice(3); startLive(); }
+    function parseHash(){
+      const h=location.hash||'';
+      if(h.startsWith('#p=')){ const [id,basket='nies'] = h.slice(3).split(':'); pantryStart(id,basket); return; }
+      if(h.startsWith('#r=')){ const id=h.slice(3); sseStart(id); return; }
+      if(h.startsWith('#d=')){ try{ data=fromSnap(h.slice(3)); mode='snapshot'; lsSet(); }catch{} }
     }
-    window.addEventListener('hashchange', ()=>{ if(location.hash!==lastHash){ parseHash(); render(); } });
 
-    function scheduleMidnight(){ if(_midnightTimer) clearTimeout(_midnightTimer); const now=new Date(); const next=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1,0,0,0,0); _midnightTimer=setTimeout(()=>{ _currentDay=todayKey(); render(); scheduleMidnight(); }, next-now+50); }
+    function scheduleMidnight(){ if(_midnightTimer) clearTimeout(_midnightTimer);
+      const now=new Date(); const next=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1,0,0,0,0);
+      _midnightTimer=setTimeout(()=>{ _currentDay=todayKey(); render(); scheduleMidnight(); }, next-now+50); }
     window.addEventListener('focus', ()=>{ const tk=todayKey(); if(tk!==_currentDay){ _currentDay=tk; render(); scheduleMidnight(); } });
 
-    // Init
+    // ===== Init =====
     function init(){
       data = lsGet();
       parseHash();
@@ -371,9 +376,20 @@
       const p=new URLSearchParams(location.search).get('view');
       setView(p==='wetter'?'wetter':'nies');
       try{ wload(); }catch{}
-      const autoEl = q('#weather-auto'); if(autoEl){ autoEl.checked = !!weather.auto; }
     }
     if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init, {once:true}); else init();
+
+    // mini confirm helper (scoped)
+    function uiConfirm(message){
+      return new Promise(res=>{
+        const ov=document.getElementById('confirm-overlay'), m=document.getElementById('confirm-title');
+        m.textContent=message; ov.hidden=false;
+        function close(ok){ ov.hidden=true; ov.removeEventListener('click',onClick); document.removeEventListener('keydown',onKey); res(ok); }
+        function onClick(e){ const b=e.target.closest('[data-confirm]'); if(!b) return; close(b.dataset.confirm==='yes'); }
+        function onKey(e){ if(e.key==='Escape') close(false); }
+        ov.addEventListener('click', onClick); document.addEventListener('keydown', onKey);
+      });
+    }
   })();
   </script>
 </body>
