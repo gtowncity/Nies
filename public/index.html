@@ -1,112 +1,333 @@
 <!DOCTYPE html>
-<html lang="de"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Nies-O-Mat</title>
-<style>body{font-family:Segoe UI,Arial,sans-serif;margin:0;padding:24px} .btn{padding:8px 12px;border:1px solid #333;background:#ffe38a;cursor:pointer} .tab{padding:6px 10px;margin-right:6px;border:1px solid #333;background:#eee} .tab.active{background:#ffc25c} table{border-collapse:collapse;width:100%} td,th{border-bottom:1px solid #ccc;padding:6px}</style>
-</head><body>
-<nav><button class="tab active" data-nav="nies">Nies‑o‑Mat</button><button class="tab" data-nav="wetter">Wetter</button></nav>
-<section id="view-nies">
-  <div>Heute: <span id="today-date">--.--.----</span> | <strong id="today-value">0</strong></div>
-  <p><button class="btn" data-action="inc">+1</button>
-     <button class="btn" data-action="dec">↶ Rückgängig</button>
-     <button class="btn" data-action="reset">Heute zurücksetzen</button>
-     <button class="btn" data-action="share">Teilen (bearbeitbar)</button>
-     <input id="share-link" style="width:50%" readonly placeholder="Link erscheint hier"/>
-  </p>
-  <table><thead><tr><th>Datum</th><th>Nieser</th><th>Aktion</th></tr></thead><tbody id="days-body"></tbody></table>
-</section>
-<section id="view-wetter" hidden>
-  <p><input id="weather-q" placeholder="Ort…"><button class="btn" data-weather="search">Suchen</button>
-     <button class="btn" data-weather="refresh">Aktualisieren</button>
-     <label><input id="weather-auto" type="checkbox" checked> Auto‑Update</label></p>
-  <div><strong id="weather-location">—</strong></div>
-  <div>Temp: <span id="w-now-temp">—</span> | Gefühl: <span id="w-now-feels">—</span> | Regen: <span id="w-now-rain">—</span> | Wind: <span id="w-now-wind">—</span> | <span id="w-now-desc">—</span></div>
-  <table><thead><tr><th>Datum</th><th>Max/Min</th><th>Regen (mm)</th><th>Wetter</th></tr></thead><tbody id="w-forecast"></tbody></table>
-</section>
-<script>
-"use strict";(function(){
-  const STORAGE_KEY='sneezeCounterDataV2';
-  let data={}, _currentDay=null, sharedMode=false, liveMode=false, roomId=null, es=null, lastHash='';
-
-  const pad=n=>String(n).padStart(2,'0');
-  const todayKey=(d=new Date())=>[d.getFullYear(),pad(d.getMonth()+1),pad(d.getDate())].join('-');
-  const displayDateFromKey=k=>{const [y,m,d]=k.split('-'); return `${d}.${m}.${y}`};
-
-  const toSnap=o=>btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-  const fromSnap=s=>{const p=(4-(s.length%4))%4; const b=s.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat(p); return JSON.parse(decodeURIComponent(escape(atob(b))))};
-  const relSnap=()=>location.pathname+location.search+'#d='+toSnap(data);
-  const relLive=()=>location.pathname+location.search+'#r='+roomId;
-  const abs=r=>location.origin+r;
-
-  function updateShareLink(){ const i=document.getElementById('share-link'); if(!i) return; i.value=abs(liveMode&&roomId?relLive():relSnap()); if(sharedMode) history.replaceState({},'',relSnap()); }
-
-  function newRoomId(){ const b=new Uint8Array(16); crypto.getRandomValues(b); return btoa(String.fromCharCode(...b)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'') }
-  function liveEndpoint(){ return location.origin+`/live/${roomId}` }
-  function startLive(){ if(!roomId) return; es&&es.close(); es=new EventSource(liveEndpoint()); es.onmessage=e=>{ try{ const incoming=JSON.parse(e.data); if(JSON.stringify(incoming)!==JSON.stringify(data)){ data=incoming; save(); render(); } }catch{} }; liveMode=true; sharedMode=false; updateShareLink(); }
-  function pushLive(){ if(!(liveMode&&roomId)) return; fetch(liveEndpoint(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).catch(()=>{}) }
-
-  function load(){ try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}')}catch{return{}} }
-  function save(){ try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data))}catch{} }
-
-  function inc(){ const k=_currentDay||todayKey(); data[k]=(Number(data[k]||0)+1); save(); render(); updateShareLink(); pushLive(); }
-  function dec(){ const k=_currentDay||todayKey(); data[k]=Math.max(0, Number(data[k]||0)-1); save(); render(); updateShareLink(); pushLive(); }
-  function resetToday(){ if(!confirm('Heute wirklich auf 0 setzen?')) return; const k=_currentDay||todayKey(); data[k]=0; save(); render(); updateShareLink(); pushLive(); }
-  function delDay(key){ if(!confirm('Tag wirklich löschen?')) return; delete data[key]; save(); render(); updateShareLink(); pushLive(); }
-
-  function render(){
-    _currentDay=todayKey();
-    document.getElementById('today-date').textContent=displayDateFromKey(_currentDay);
-    document.getElementById('today-value').textContent=String(Number(data[_currentDay]||0));
-    const tb=document.getElementById('days-body'); tb.innerHTML='';
-    Object.keys(data).sort((a,b)=>a<b?1:-1).forEach(k=>{
-      const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${displayDateFromKey(k)}</td><td>${data[k]}</td><td><button class="btn" data-action="del" data-key="${k}">Löschen</button></td>`;
-      tb.appendChild(tr);
-    });
-  }
-
-  function parseHash(){ const h=location.hash||''; lastHash=h;
-    if(h.startsWith('#d=')){ try{ data=fromSnap(h.slice(3)); sharedMode=true; liveMode=false; roomId=null; save(); }catch{} }
-    else if(h.startsWith('#r=')){ roomId=h.slice(3); startLive(); }
-  }
-  window.addEventListener('hashchange', ()=>{ if(location.hash!==lastHash){ parseHash(); render(); } });
-
-  document.addEventListener('click', async (e)=>{
-    const a=e.target.closest('[data-action]');
-    if(a){
-      const act=a.dataset.action;
-      if(act==='inc') return inc();
-      if(act==='dec') return dec();
-      if(act==='reset') return resetToday();
-      if(act==='del') return delDay(a.dataset.key);
-      if(act==='share'){
-        if(e.shiftKey){ if(!roomId) roomId=newRoomId(); liveMode=true; sharedMode=false; history.replaceState({},'',relLive()); updateShareLink(); startLive(); pushLive(); const L=abs(relLive()); try{ await navigator.clipboard.writeText(L)}catch{}; return; }
-        sharedMode=true; liveMode=false; updateShareLink(); const L=abs(relSnap()); try{ await navigator.clipboard.writeText(L)}catch{}; return;
-      }
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nies-O-Mat</title>
+  <style>
+    :root{
+      --sky1:#8ecbff; --sky2:#bfe6ff;
+      --hill1:#9bd37a; --hill2:#6fc061;
+      --text:#22170a; --muted:#6b5b3a;
+      --paper:#fff6df;
+      --wood1:#4f311b; --wood2:#6c4223; --wood3:#996637;
+      --gold1:#ffe38a; --gold2:#ffc25c; --gold3:#db8c28; --gold-border:#6d3f09;
+      --red1:#ffd2c9; --red2:#ff9e8e; --red3:#e1705f; --red-border:#7d2e24;
+      --blue1:#cfe9ff; --blue2:#9fd0ff; --blue3:#6fb1f2; --blue-border:#2a557c;
+      --radius:0; --px:3px;
     }
-    const n=e.target.closest('[data-nav]'); if(n){ const v=n.dataset.nav; document.getElementById('view-nies').hidden=(v!=='nies'); document.getElementById('view-wetter').hidden=(v!=='wetter'); document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.nav===v)); }
-  });
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:var(--text); font-family: "Segoe UI", Frutiger, Arial, system-ui, sans-serif;
+      display:grid; place-items:start center; image-rendering: pixelated;
+      background:
+        radial-gradient(150px 60px at 22% 10%, rgba(255,255,255,.75), rgba(255,255,255,0) 70%),
+        radial-gradient(200px 80px at 68% 12%, rgba(255,255,255,.75), rgba(255,255,255,0) 70%),
+        radial-gradient(140px 50px at 82% 20%, rgba(255,255,255,.75), rgba(255,255,255,0) 70%),
+        radial-gradient(800px 180px at 20% 100%, var(--hill1) 0 60%, rgba(0,0,0,0) 61%),
+        radial-gradient(900px 200px at 80% 100%, var(--hill2) 0 60%, rgba(0,0,0,0) 61%),
+        linear-gradient(to bottom, var(--sky1), var(--sky2) 62%);
+      background-attachment: fixed;
+    }
+    .wrap{ width:min(1080px,92vw); padding:18px 20px 56px; }
+    header{ text-align:center; margin-bottom:8px; position:relative; z-index:1; }
+    header h1{ margin:6px 0 2px; font-weight:900; letter-spacing:1px; font-size:clamp(28px,4vw,44px); text-transform:uppercase; color:#2a1b06;
+      text-shadow: var(--px) var(--px) 0 #d8ae5f, calc(var(--px)*-1) var(--px) 0 #d8ae5f, var(--px) calc(var(--px)*-1) 0 #d8ae5f, calc(var(--px)*-1) calc(var(--px)*-1) 0 #d8ae5f, 0 calc(var(--px)*2) 0 rgba(0,0,0,.18); }
+    header .subtitle{ color:#4e3e25; font-size:clamp(12px,1.6vw,16px); }
 
-  // Wetter (Open-Meteo)
-  async function geocode(q){ const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=de`); const j=await r.json(); return j.results&&j.results[0] }
-  async function wfetch(lat,lon,tz='auto'){ const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=${tz}&forecast_days=7&language=de`; const r=await fetch(url); return r.json() }
-  function wdesc(code){const m={0:'Klar',1:'Überwiegend klar',2:'Teilweise bewölkt',3:'Bedeckt',61:'Regen leicht',63:'Regen',65:'Regen stark',80:'Schauer leicht',81:'Schauer',82:'Schauer stark',95:'Gewitter'}; return m[code]||'—'}
-  async function wSearch(){
-    const qs=document.getElementById('weather-q').value.trim(); if(!qs) return;
-    const hit=await geocode(qs); if(!hit) {alert('Ort nicht gefunden'); return;}
-    document.getElementById('weather-location').textContent = hit.name + (hit.country?', '+hit.country:'');
-    const data=await wfetch(hit.latitude, hit.longitude, hit.timezone||'auto');
-    document.getElementById('w-now-temp').textContent=Math.round(data.current.temperature_2m)+'°C';
-    document.getElementById('w-now-feels').textContent=Math.round(data.current.apparent_temperature)+'°C';
-    document.getElementById('w-now-rain').textContent=(data.current.precipitation||0)+' mm';
-    document.getElementById('w-now-wind').textContent=Math.round(data.current.wind_speed_10m)+' km/h';
-    document.getElementById('w-now-desc').textContent=wdesc(data.current.weather_code);
-    const tb=document.getElementById('w-forecast'); tb.innerHTML='';
-    for(let i=0;i<data.daily.time.length;i++){const dt=new Date(data.daily.time[i]+'T12:00:00');const dd=String(dt.getDate()).padStart(2,'0');const mm=String(dt.getMonth()+1).padStart(2,'0');const yyyy=dt.getFullYear();const tr=document.createElement('tr');tr.innerHTML=`<td>${dd}.${mm}.${yyyy}</td><td>${Math.round(data.daily.temperature_2m_max[i])}° / ${Math.round(data.daily.temperature_2m_min[i])}°</td><td>${Math.round(data.daily.precipitation_sum[i]||0)}</td><td>${wdesc(data.daily.weather_code[i])}</td>`;tb.appendChild(tr);}
-  }
-  document.addEventListener('click', (e)=>{ const w=e.target.closest('[data-weather]'); if(!w) return; if(w.dataset.weather==='search') wSearch(); if(w.dataset.weather==='refresh') { const t=document.getElementById('weather-location').textContent.trim(); if(t&&t!=='—') wSearch(); } });
+    /* NAV */
+    .nav{ display:flex; justify-content:center; gap:8px; margin:8px auto 14px; }
+    .tab{ --pad:8px 14px; appearance:none; border-radius:var(--radius); padding:var(--pad); cursor:pointer; user-select:none; text-transform:uppercase;
+      border:2px solid var(--wood2); font-weight:900; color:#2a1f0f; background:#f7ead0; box-shadow: inset 0 1px 0 #fff, 0 var(--px) 0 rgba(0,0,0,.25), 0 calc(var(--px)*2) 0 rgba(0,0,0,.25); }
+    .tab.active{ border-color:var(--gold-border); background:linear-gradient(180deg, var(--gold1), var(--gold2) 60%, var(--gold3)); color:#3b2506; }
 
-  // init
-  function init(){ data=load(); parseHash(); render(); document.getElementById('view-nies').hidden=false; document.getElementById('view-wetter').hidden=true; document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.nav==='nies')); document.getElementById('today-date').textContent=displayDateFromKey(todayKey()); }
-  document.addEventListener('DOMContentLoaded', init, {once:true});
-})();</script>
-</body></html>
+    .grid{ display:grid; gap:14px; grid-template-columns:1fr; }
+    .board{ padding:10px; border:2px solid var(--wood1); background:
+      linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0)),
+      repeating-linear-gradient(90deg, var(--wood3) 0 12px, var(--wood2) 12px 24px, var(--wood3) 24px 36px);
+      box-shadow: 0 var(--px) 0 rgba(0,0,0,.35), 0 calc(var(--px)*2) 0 rgba(0,0,0,.35), 0 calc(var(--px)*6) calc(var(--px)*3) rgba(0,0,0,.22); }
+    .card{ position:relative; overflow:hidden; border-radius:var(--radius); background: linear-gradient(180deg,#fff9e8,var(--paper)); border:2px solid var(--wood2); box-shadow: inset 0 var(--px) 0 #fff; padding:16px; }
+    .card::after{ content:""; position:absolute; inset:0; pointer-events:none; background-image: linear-gradient(90deg, rgba(0,0,0,.04) 1px, transparent 1px), linear-gradient(0deg, rgba(0,0,0,.04) 1px, transparent 1px); background-size:2px 2px, 2px 2px; mix-blend-mode:multiply; }
+    .card h2{ margin:0 0 10px; font-size:18px; font-weight:900; text-align:center; text-transform:uppercase; letter-spacing:.5px; }
+    .today-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .today-label{ font-size:16px; font-weight:900; text-transform:uppercase; letter-spacing:.5px; }
+    .today-value{ text-align:center; font-size:clamp(48px,9vw,92px); font-weight:900; line-height:1; margin:8px 0 0; color:#1e160b;
+      text-shadow: var(--px) var(--px) 0 #d8ae5f, calc(var(--px)*-1) var(--px) 0 #d8ae5f, var(--px) calc(var(--px)*-1) 0 #d8ae5f, calc(var(--px)*-1) calc(var(--px)*-1) 0 #d8ae5f; }
+    .btns{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .btn{ --pad:10px 16px; appearance:none; border-radius:var(--radius); padding:var(--pad); cursor:pointer; user-select:none; text-transform:uppercase;
+      border:2px solid var(--gold-border); font-weight:900; color:#3b2506;
+      background: linear-gradient(180deg, var(--gold1), var(--gold2) 60%, var(--gold3)); box-shadow: 0 var(--px) 0 rgba(0,0,0,.35), 0 calc(var(--px)*2) 0 rgba(0,0,0,.35), inset 0 1px 0 #fff7d0; transition: transform .05s ease, box-shadow .05s ease; }
+    .btn:active{ transform: translateY(1px); box-shadow: 0 calc(var(--px)*.5) 0 rgba(0,0,0,.35), 0 var(--px) 0 rgba(0,0,0,.35), inset 0 1px 0 #fff7d0; }
+    .btn.secondary{ background: linear-gradient(180deg, var(--blue1), var(--blue2) 60%, var(--blue3)); border-color: var(--blue-border); color:#13314b; }
+    .btn.danger{ background: linear-gradient(180deg, var(--red1), var(--red2) 60%, var(--red3)); border-color: var(--red-border); color:#4b1411; }
+    .btn.ghost{ background:#f7ead0; border-color: var(--wood2); color:#2a1f0f; box-shadow: inset 0 1px 0 #fff; }
+    .btn.small{ --pad:8px 10px; font-size:14px; }
+
+    .stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; text-align:center; margin-top:6px; }
+    .stat{ background:#fff4db; border:2px solid var(--wood2); border-radius:var(--radius); padding:10px; box-shadow: inset 0 1px 0 #fff; }
+    .stat .label{ color:#695333; font-size:12px; font-weight:800; text-transform:uppercase; }
+    .stat .value{ font-size:18px; font-weight:900; margin-top:4px; }
+
+    .share{ display:flex; gap:8px; align-items:center; margin-top:10px; }
+    .share input{ flex:1; padding:11px; border-radius:var(--radius); border:2px solid var(--wood2); background:#fff9e9; color:#2a1f0f; outline:none; box-shadow: inset 0 1px 0 #fff; font-weight:700; }
+
+    table{ width:100%; border-collapse:collapse; }
+    thead th{ text-align:left; color:#6b5b3a; font-weight:900; padding:10px 8px; border-bottom:2px solid var(--wood2); text-transform:uppercase; }
+    tbody td{ padding:9px 8px; border-bottom:1px solid #e5d7b5; vertical-align:middle; }
+    tbody tr:hover{ background:#fff4db; }
+    td.actions{ text-align:right; }
+
+    #confirm-overlay[hidden]{ display:none; }
+    #confirm-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.35); display:grid; place-items:center; z-index:50; image-rendering:pixelated; }
+    .confirm{ width:min(420px,92vw); background:linear-gradient(180deg,#fff9e8,#fff3d2); border:2px solid var(--wood2); border-radius:var(--radius); box-shadow: 0 var(--px) 0 rgba(0,0,0,.35), 0 calc(var(--px)*2) 0 rgba(0,0,0,.35), 0 calc(var(--px)*6) calc(var(--px)*3) rgba(0,0,0,.22); padding:16px; }
+    .confirm .msg{ margin-bottom:12px; font-weight:900; text-align:center; text-transform:uppercase; }
+    .confirm .row{ display:flex; gap:8px; justify-content:flex-end; }
+
+    /* WEATHER */
+    .weather-actions{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-bottom:8px; }
+    .weather-actions input[type="text"]{ padding:10px; border:2px solid var(--wood2); background:#fff9e9; font-weight:700; outline:none; }
+    .weather-head{ text-align:center; font-weight:900; text-transform:uppercase; margin:6px 0 8px; }
+    .weather-grid{ display:grid; gap:10px; grid-template-columns:1fr; }
+    .now-box{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+    .kv{ background:#fff4db; border:2px solid var(--wood2); padding:10px; box-shadow: inset 0 1px 0 #fff; text-align:center; }
+    .kv .label{ font-size:12px; text-transform:uppercase; color:#695333; font-weight:800; }
+    .kv .value{ font-size:18px; font-weight:900; margin-top:4px; }
+    .forecast table{ width:100%; border-collapse:collapse; }
+    .forecast td, .forecast th{ padding:8px; border-bottom:1px solid #e5d7b5; text-align:left; }
+    .forecast thead th{ border-bottom:2px solid var(--wood2); }
+
+    [hidden]{ display:none !important; }
+    @media (max-width:720px){
+      .stats{ grid-template-columns:repeat(2,1fr); }
+      .today-head{ flex-direction:column; align-items:center; gap:8px; }
+      .btns{ width:100%; justify-content:center; flex-wrap:wrap; }
+      .now-box{ grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap" id="app" aria-live="polite">
+    <header>
+      <h1>Nies-O-Mat</h1>
+      <div class="subtitle">Büro-Gadget im Pixelstil – Nies-Zähler & Wetter.</div>
+      <nav class="nav" aria-label="Navigation">
+        <button class="tab active" data-nav="nies">Nies-o-Mat</button>
+        <button class="tab" data-nav="wetter">Wetter</button>
+      </nav>
+    </header>
+
+    <!-- VIEW: NIESER -->
+    <section id="view-nies" class="grid" role="region" aria-label="Nies-o-Mat">
+      <section class="board">
+        <section class="card" id="panel-today" aria-labelledby="today-title">
+          <div class="today-head">
+            <div class="today-label" id="today-title">Heute (<span id="today-date">--.--.----</span>)</div>
+            <div class="btns">
+              <button type="button" class="btn" data-action="inc">+1</button>
+              <button type="button" class="btn secondary" data-action="dec">↶ Rückgängig</button>
+              <button type="button" class="btn danger" data-action="reset">Heute zurücksetzen</button>
+            </div>
+          </div>
+          <div class="today-value" id="today-value">0</div>
+        </section>
+      </section>
+      <section class="board">
+        <section class="card" id="panel-stats">
+          <h2>Statistiken</h2>
+          <div class="stats" id="stats">
+            <div class="stat"><div class="label">Gesamt</div><div class="value" id="stat-total">0</div></div>
+            <div class="stat"><div class="label">Bester Tag</div><div class="value" id="stat-best">0 — —</div></div>
+            <div class="stat"><div class="label">Ø pro Tag</div><div class="value" id="stat-avg">0,00</div></div>
+            <div class="stat"><div class="label">Streak</div><div class="value" id="stat-streak">0</div></div>
+          </div>
+          <div class="share">
+            <button type="button" class="btn" data-action="share">Teilen (bearbeitbar)</button>
+            <input id="share-link" type="text" readonly placeholder="Link wird hier angezeigt …" aria-label="Teilbarer Link" />
+          </div>
+        </section>
+      </section>
+      <section class="board">
+        <section class="card" id="panel-days">
+          <h2>Tage</h2>
+          <table aria-describedby="Tabelle der Nieser pro Tag">
+            <thead>
+              <tr><th style="width:46%">Datum</th><th style="width:24%">Nieser</th><th class="actions" style="width:30%">Aktion</th></tr>
+            </thead>
+            <tbody id="days-body"></tbody>
+          </table>
+        </section>
+      </section>
+    </section>
+
+    <!-- VIEW: WEATHER -->
+    <section id="view-wetter" class="grid" role="region" aria-label="Wetter" hidden>
+      <section class="board">
+        <section class="card">
+          <h2>Wetter</h2>
+          <div class="weather-actions">
+            <input id="weather-q" type="text" placeholder="Ort suchen (z. B. München)" />
+            <button type="button" class="btn" data-weather="search">Suchen</button>
+            <button type="button" class="btn secondary" data-weather="loc">Meine Position</button>
+            <button type="button" class="btn ghost" data-weather="refresh">Aktualisieren</button>
+            <label style="display:flex;align-items:center;gap:6px"><input id="weather-auto" type="checkbox" checked /> Auto-Update</label>
+          </div>
+          <div class="weather-head" id="weather-location">—</div>
+          <div class="weather-grid">
+            <div class="now-box" id="weather-now">
+              <div class="kv"><div class="label">Temperatur</div><div class="value" id="w-now-temp">—</div></div>
+              <div class="kv"><div class="label">Gefühlt</div><div class="value" id="w-now-feels">—</div></div>
+              <div class="kv"><div class="label">Niederschlag</div><div class="value" id="w-now-rain">—</div></div>
+              <div class="kv"><div class="label">Wind</div><div class="value" id="w-now-wind">—</div></div>
+              <div class="kv" style="grid-column:1/-1"><div class="label">Lage</div><div class="value" id="w-now-desc">—</div></div>
+            </div>
+            <div class="forecast card" style="background:#fff9e8;border-color:var(--wood2)">
+              <h2>Vorhersage (7 Tage)</h2>
+              <table>
+                <thead><tr><th>Datum</th><th>Max/Min</th><th>Regen (mm)</th><th>Wetter</th></tr></thead>
+                <tbody id="w-forecast"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <div id="confirm-overlay" hidden>
+    <div class="confirm" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+      <div id="confirm-title" class="msg">Bitte bestätigen</div>
+      <div class="row">
+        <button type="button" class="btn ghost small" data-confirm="no">Abbrechen</button>
+        <button type="button" class="btn danger small" data-confirm="yes">Bestätigen</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  "use strict"; (function(){
+    // ===== State =====
+    const STORAGE_KEY='sneezeCounterDataV2';
+    let data={}, _currentDay=null, _midnightTimer=null;
+    let sharedMode=false, liveMode=false, roomId=null, es=null, lastHash='';
+
+    // ===== Utils =====
+    const pad=n=>String(n).padStart(2,'0');
+    const todayKey=(d=new Date())=>[d.getFullYear(),pad(d.getMonth()+1),pad(d.getDate())].join('-');
+    const displayDateFromKey=k=>{const [y,m,d]=k.split('-'); return `${d}.${m}.${y}`;};
+    const prevDayKey=k=>{const [y,m,d]=k.split('-').map(Number); return todayKey(new Date(y,m-1,d-1));};
+    const q = s=>document.querySelector(s);
+    const on=(el,ev,fn)=> el&&el.addEventListener(ev,fn,false);
+    const lsGet=()=>{try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}')}catch{return{}}};
+    const lsSet=()=>{try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data))}catch{}};
+
+    // ===== Snapshot share =====
+    const toSnapshot=obj=>btoa(unescape(encodeURIComponent(JSON.stringify(obj)))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');
+    const fromSnapshot=str=>{const p=(4-(str.length%4))%4; const b=str.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat(p); return JSON.parse(decodeURIComponent(escape(atob(b))))};
+    const relSnap=()=>location.pathname+location.search+'#d='+toSnapshot(data);
+    const abs=r=>location.origin+r;
+    const relLive=()=>location.pathname+location.search+'#r='+roomId;
+    function updateShareLink(){ const i=q('#share-link'); if(!i) return; i.value=abs(liveMode&&roomId?relLive():relSnap()); if(sharedMode) history.replaceState({},'',relSnap()); }
+
+    // ===== Live (SSE) =====
+    function newRoomId(){ const b=new Uint8Array(16); crypto.getRandomValues(b); return btoa(String.fromCharCode(...b)).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,''); }
+    function liveEndpoint(){ return location.origin.replace(/\\/$/,'') + `/live/${roomId}`; }
+    function startLive(){ if(!roomId) return; es&&es.close(); es=new EventSource(liveEndpoint()); es.onmessage=e=>{ try{ const incoming=JSON.parse(e.data); if(JSON.stringify(incoming)!==JSON.stringify(data)){ data=incoming; lsSet(); render(); } }catch{} }; es.onerror=()=>{}; liveMode=true; sharedMode=false; updateShareLink(); }
+    function pushLive(){ if(!(liveMode&&roomId)) return; fetch(liveEndpoint(),{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)}).catch(()=>{}); }
+
+    // ===== Core (Nies) =====
+    function inc(n=1){ const k=_currentDay||todayKey(); data[k]=Number(data[k]||0)+Number(n||0); lsSet(); render(); updateShareLink(); pushLive(); }
+    function dec(n=1){ const k=_currentDay||todayKey(); data[k]=Math.max(0, Number(data[k]||0)-Number(n||0)); lsSet(); render(); updateShareLink(); pushLive(); }
+    function resetTodayForce(){ const k=_currentDay||todayKey(); data[k]=0; lsSet(); render(); updateShareLink(); pushLive(); }
+    function deleteDayForce(key){ if(!(key in data)) return; delete data[key]; lsSet(); render(); updateShareLink(); pushLive(); }
+
+    function uiConfirm(msg){ return new Promise(res=>{ const ov=q('#confirm-overlay'); const m=q('#confirm-title'); m.textContent=msg; ov.hidden=false; function close(ok){ ov.hidden=true; ov.removeEventListener('click',onClick); document.removeEventListener('keydown',onKey); res(ok);} function onClick(e){ const b=e.target.closest('[data-confirm]'); if(!b) return; close(b.dataset.confirm==='yes'); } function onKey(e){ if(e.key==='Escape') close(false);} ov.addEventListener('click',onClick); document.addEventListener('keydown',onKey); }); }
+
+    // Public wrappers (optional)
+    function resetToday(){ uiConfirm('Heute wirklich auf 0 setzen?').then(ok=>ok&&resetTodayForce()); }
+    function deleteDay(k){ uiConfirm(\`Tag \${displayDateFromKey(k)} wirklich löschen?\`).then(ok=>ok&&deleteDayForce(k)); }
+
+    function computeStats(obj){ const keys=Object.keys(obj); let total=0,days=0,best=0,bestKey=null; for(const k of keys){ const v=Number(obj[k]||0); if(v>0){ total+=v; days++; if(v>best || (v===best && (!bestKey||k>bestKey))){ best=v; bestKey=k; } } } let streak=0,cur=todayKey(); while(Number(obj[cur]||0)>0){ streak++; cur=prevDayKey(cur);} return {total, avg:days?total/days:0, best, bestDay:bestKey?displayDateFromKey(bestKey):'—', streak}; }
+
+    function render(){
+      _currentDay=todayKey();
+      q('#today-date').textContent=displayDateFromKey(_currentDay);
+      q('#today-value').textContent=String(Number(data[_currentDay]||0));
+      const s=computeStats(data);
+      q('#stat-total').textContent=String(s.total);
+      q('#stat-avg').textContent=s.avg.toFixed(2).replace('.',',');
+      q('#stat-best').textContent=s.best>0?\`\${s.best} — \${s.bestDay}\`:'0 — —';
+      q('#stat-streak').textContent=String(s.streak);
+      const tb=q('#days-body'); tb.innerHTML='';
+      const keys=Object.keys(data).sort((a,b)=>a<b?1:-1);
+      for(const k of keys){ const tr=document.createElement('tr'); tr.innerHTML=\`<td>\${displayDateFromKey(k)}</td><td>\${Number(data[k]||0)}</td><td class="actions"><button type="button" class="btn ghost small" data-action="del" data-key="\${k}">Löschen</button></td>\`; tb.appendChild(tr); }
+    }
+
+    // ===== Weather =====
+    const WKEY='niesWeatherPrefsV1';
+    let weather={name:'Berlin, DE', lat:52.52, lon:13.405, auto:true, tz:Intl.DateTimeFormat().resolvedOptions().timeZone||'auto'};
+    let weatherTimer=null, weatherData=null;
+    function wsave(){ try{ localStorage.setItem(WKEY, JSON.stringify(weather)); }catch{} }
+    function wload(){ try{ const raw=localStorage.getItem(WKEY); if(raw){ const p=JSON.parse(raw); if(p&&typeof p==='object'){ weather={...weather,...p}; } } }catch{} }
+    function fmt(n,u){ return (n==null||Number.isNaN(n))? '—' : \`\${Math.round(n)}\${u}\`; }
+    function wmoDesc(code){ const m={0:'Klar',1:'Überwiegend klar',2:'Teilweise bewölkt',3:'Bedeckt',45:'Nebel',48:'Reifnebel',51:'Niesel leicht',53:'Niesel',55:'Niesel stark',61:'Regen leicht',63:'Regen',65:'Regen stark',66:'Gefr. Regen leicht',67:'Gefr. Regen',71:'Schnee leicht',73:'Schnee',75:'Schnee stark',77:'Schneekörner',80:'Schauer leicht',81:'Schauer',82:'Schauer stark',85:'Schneeschauer leicht',86:'Schneeschauer stark',95:'Gewitter',96:'Gewitter leichter Hagel',99:'Gewitter starker Hagel'}; return m[code]||'—'; }
+    async function geocode(qs){ const r=await fetch(\`https://geocoding-api.open-meteo.com/v1/search?name=\${encodeURIComponent(qs)}&count=1&language=de\`); if(!r.ok) throw 0; const j=await r.json(); const hit=j.results&&j.results[0]; if(!hit) throw 0; return {name:\`\${hit.name}\${hit.country?', '+hit.country:''}\`, lat:hit.latitude, lon:hit.longitude, tz:hit.timezone}; }
+    async function wfetch(){ const tz=weather.tz==='auto'?'auto':encodeURIComponent(weather.tz); const url=\`https://api.open-meteo.com/v1/forecast?latitude=\${weather.lat}&longitude=\${weather.lon}&current=temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=\${tz}&forecast_days=7&language=de\`; const r=await fetch(url); if(!r.ok) throw 0; weatherData=await r.json(); wrender(); }
+    function wrender(){ q('#weather-location').textContent=weather.name; const c=weatherData&&weatherData.current; if(c){ q('#w-now-temp').textContent=fmt(c.temperature_2m,'°C'); q('#w-now-feels').textContent=fmt(c.apparent_temperature,'°C'); q('#w-now-rain').textContent=fmt(c.precipitation,' mm'); q('#w-now-wind').textContent=fmt(c.wind_speed_10m,' km/h'); q('#w-now-desc').textContent=wmoDesc(c.weather_code); } const tb=q('#w-forecast'); tb.innerHTML=''; const d=weatherData&&weatherData.daily; if(d){ for(let i=0;i<d.time.length;i++){ const dt=new Date(d.time[i]+'T12:00:00'); const dd=String(dt.getDate()).padStart(2,'0'); const mm=String(dt.getMonth()+1).padStart(2,'0'); const yyyy=dt.getFullYear(); const hi=Math.round(d.temperature_2m_max[i]); const lo=Math.round(d.temperature_2m_min[i]); const rain=Math.round(d.precipitation_sum[i]||0); const code=d.weather_code[i]; const tr=document.createElement('tr'); tr.innerHTML=\`<td>\${dd}.\${mm}.\${yyyy}</td><td>\${hi}° / \${lo}°</td><td>\${rain}</td><td>\${wmoDesc(code)}</td>\`; tb.appendChild(tr);} } }
+    function wschedule(){ if(weatherTimer) clearInterval(weatherTimer); if(q('#weather-auto')?.checked){ weatherTimer=setInterval(()=>{ wfetch().catch(()=>{}); }, 10*60*1000); } }
+
+    // ===== Routing =====
+    function setView(v){ const isN=v==='nies'; q('#view-nies').hidden=!isN; q('#view-wetter').hidden=isN; document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b.dataset.nav===v)); const u=new URL(location.href); u.searchParams.set('view', v); history.replaceState({},'',u.pathname+'?'+u.searchParams.toString()+location.hash); if(v==='wetter'){ wschedule(); if(!weatherData) wfetch().catch(()=>{}); } }
+
+    // ===== Global event delegation =====
+    document.addEventListener('click', async (e)=>{
+      const a=e.target.closest('[data-action]');
+      if(a){
+        const act=a.dataset.action;
+        if(act==='inc') return void inc(1);
+        if(act==='dec') return void dec(1);
+        if(act==='reset'){ const ok=await uiConfirm('Heute wirklich auf 0 setzen?'); if(ok) resetTodayForce(); return; }
+        if(act==='del'){ const key=a.dataset.key; const ok=await uiConfirm(\`Tag \${displayDateFromKey(key)} wirklich löschen?\`); if(ok) deleteDayForce(key); return; }
+        if(act==='share'){
+          if(e.shiftKey){ if(!roomId) roomId=newRoomId(); liveMode=true; sharedMode=false; history.replaceState({},'',relLive()); updateShareLink(); startLive(); pushLive(); const L=abs(relLive()); try{ await navigator.clipboard.writeText(L) }catch{ prompt('Link:',L) } q('#share-link')?.select(); }
+          else { sharedMode=true; liveMode=false; updateShareLink(); const L=abs(relSnap()); try{ await navigator.clipboard.writeText(L) }catch{ prompt('Link:',L) } q('#share-link')?.select(); }
+          return;
+        }
+      }
+      const n=e.target.closest('[data-nav]'); if(n){ setView(n.dataset.nav); return; }
+      const w=e.target.closest('[data-weather]'); if(w){ const act=w.dataset.weather;
+        if(act==='search'){ const qs=q('#weather-q').value.trim(); if(!qs) return; try{ const loc=await geocode(qs); weather={...weather, name:loc.name, lat:loc.lat, lon:loc.lon, tz:loc.tz||weather.tz}; wsave(); await wfetch(); }catch{ alert('Ort nicht gefunden'); } return; }
+        if(act==='loc'){ if(!navigator.geolocation) return void alert('Geolocation nicht verfügbar'); navigator.geolocation.getCurrentPosition(async pos=>{ weather.name='Meine Position'; weather.lat=pos.coords.latitude; weather.lon=pos.coords.longitude; wsave(); try{ await wfetch(); }catch{} }, ()=>alert('Standort abgelehnt')); return; }
+        if(act==='refresh'){ wfetch().catch(()=>{}); return; }
+      }
+    });
+    document.addEventListener('change', (e)=>{ if(e.target && e.target.id==='weather-auto'){ weather.auto=!!e.target.checked; wsave(); wschedule(); } });
+
+    // ===== Hash parse =====
+    function parseHash(){ const h=location.hash||''; lastHash=h;
+      if(h.startsWith('#d=')){ try{ data=fromSnapshot(h.slice(3)); sharedMode=true; liveMode=false; roomId=null; lsSet(); }catch{ alert('Ungültiger Snapshot-Link'); } }
+      else if(h.startsWith('#r=')){ roomId=h.slice(3); startLive(); }
+    }
+    window.addEventListener('hashchange', ()=>{ if(location.hash!==lastHash){ parseHash(); render(); } });
+
+    // ===== Midnight rollover =====
+    function scheduleMidnight(){ if(_midnightTimer) clearTimeout(_midnightTimer); const now=new Date(); const next=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1,0,0,0,0); const ms=next-now+50; _midnightTimer=setTimeout(()=>{ _currentDay=todayKey(); render(); scheduleMidnight(); }, ms); }
+    on(window,'focus', ()=>{ const tk=todayKey(); if(tk!==_currentDay){ _currentDay=tk; render(); scheduleMidnight(); } });
+
+    // ===== Init =====
+    function init(){
+      data = lsGet();
+      parseHash();
+      render();
+      scheduleMidnight();
+      const p=new URLSearchParams(location.search).get('view');
+      setView(p==='wetter'?'wetter':'nies');
+      wload();
+      const autoEl=document.getElementById('weather-auto'); if(autoEl){ autoEl.checked=!!weather.auto; }
+      if(p==='wetter') wfetch().catch(()=>{});
+    }
+    document.addEventListener('DOMContentLoaded', ()=>{ try{ init(); }catch(e){ console.error(e); alert('Init-Fehler. Seite neu laden.'); } }, {once:true});
+  })();
+  </script>
+</body>
+</html>
