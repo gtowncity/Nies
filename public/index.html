@@ -196,15 +196,24 @@
   const abs=r=>location.origin+r;
 
   function liveEndpoint(){ return location.origin.replace(/\/$/,'') + '/live/' + roomId; }
+
+  // BUGFIX: Poll ignoriert leere Payloads und seedet den Server neu
   function startPoll(){
     stopPoll();
-    pollTimer=setInterval(async ()=>{
+    pollTimer = setInterval(async ()=>{
       try{
-        const r=await fetch(liveEndpoint()+'/last',{cache:'no-store'});
+        const r = await fetch(liveEndpoint()+'/last', { cache:'no-store' });
         if(!r.ok) return;
-        const incoming=await r.json();
-        if(incoming && JSON.stringify(incoming)!==JSON.stringify(data)){ data=incoming; lsSet(); render(); }
-      }catch{}
+        const incoming = await r.json();
+
+        if (incoming && typeof incoming === 'object') {
+          const isEmpty = Object.keys(incoming).length === 0;
+          if (isEmpty) { pushLive(); return; } // nach Server-Restart: eigenen Stand hochladen
+          if (JSON.stringify(incoming) !== JSON.stringify(data)) {
+            data = incoming; lsSet(); render();
+          }
+        }
+      } catch {}
     }, 2000);
   }
   function stopPoll(){ if(pollTimer){ clearInterval(pollTimer); pollTimer=null; } }
@@ -214,7 +223,13 @@
     if(es) es.close();
     es=new EventSource(liveEndpoint());
     es.onopen=()=>{ stopPoll(); };
-    es.onmessage=e=>{ try{ const incoming=JSON.parse(e.data); if(JSON.stringify(incoming)!==JSON.stringify(data)){ data=incoming; lsSet(); render(); } }catch{} };
+    // BUGFIX: leere SSE-Nachrichten ignorieren
+    es.onmessage=e=>{ try{
+      const incoming=JSON.parse(e.data);
+      if (incoming && typeof incoming === 'object' && Object.keys(incoming).length > 0) {
+        if(JSON.stringify(incoming)!==JSON.stringify(data)){ data=incoming; lsSet(); render(); }
+      }
+    }catch{} };
     es.onerror=()=>{ startPoll(); }; // Fallback
     liveMode=true;
     updateShareLink();
